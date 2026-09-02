@@ -1,8 +1,8 @@
 'use client'
 
 import { SelectedWalletAccountContextProvider } from '@solana/react'
-import type { UiWallet } from '@wallet-standard/react'
-import type { ReactNode } from 'react'
+import { getWalletFeature, useWallets, type UiWallet } from '@wallet-standard/react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { SELECTED_ACCOUNT_STORAGE_KEY, SOLANA_CHAIN } from '@/lib/solana/chain'
 
 /**
@@ -10,23 +10,22 @@ import { SELECTED_ACCOUNT_STORAGE_KEY, SOLANA_CHAIN } from '@/lib/solana/chain'
  *
  * Espelha a regra do lado EVM (ver lib/wagmi.ts): so este arquivo e o
  * ConnectSolanaWallet importam de '@solana/react' e '@wallet-standard/react'.
- * Os componentes de feature falam com os hooks do projeto, nao com a biblioteca.
  *
  * As duas familias de carteira convivem, mas nao se misturam: EVM entra pelo wagmi,
- * Solana entra por aqui. Em nenhum lugar da arvore existe um "conecte sua carteira"
- * generico tentando abstrair as duas — sao dois enderecos reais, em duas redes, e o
- * usuario precisa enxergar os dois.
+ * Solana entra por aqui. Nao existe um botao generico de "conectar carteira"
+ * abstraindo as duas — sao dois enderecos reais em duas redes, e o usuario precisa
+ * enxergar os dois.
  */
 
-/** So carteiras que declaram suporte a mainnet da Solana aparecem na lista. */
-function supportsSolanaMainnet(wallet: UiWallet) {
+/** So carteiras que declaram suporte a rede que o app usa aparecem na lista. */
+function supportsChain(wallet: UiWallet) {
   return wallet.chains.includes(SOLANA_CHAIN)
 }
 
 /**
  * Persistencia da conta escolhida. Envolvida em try/catch porque localStorage lanca
- * excecao em aba anonima e com cookies de terceiros bloqueados — nesse caso o app
- * segue funcionando, so nao lembra a escolha entre sessoes.
+ * excecao em aba anonima e com storage bloqueado — nesse caso o app segue
+ * funcionando, so nao lembra a escolha entre sessoes.
  */
 const stateSync = {
   getSelectedWallet: () => {
@@ -52,12 +51,62 @@ const stateSync = {
   },
 }
 
+type ConnectFeature = {
+  connect: (input?: { silent?: boolean }) => Promise<unknown>
+}
+
+/**
+ * Reconecta a carteira ao recarregar a pagina.
+ *
+ * Isto NAO e redundante com o stateSync acima. O provider do @solana/react apenas
+ * procura a conta salva dentro de `wallet.accounts` — ele nunca chama connect. Se a
+ * extensao nao esta expondo conta nenhuma no load, nao ha o que encontrar e a
+ * selecao se perde, mesmo estando salva. Guardar a escolha e restabelecer a conexao
+ * sao duas coisas distintas; esta e a segunda.
+ *
+ * `silent: true` significa "conecte apenas se este site ja foi autorizado" — nao
+ * abre popup. Se o usuario nunca autorizou, ou revogou, a promise rejeita e a gente
+ * simplesmente segue desconectado, que e o comportamento correto.
+ *
+ * O efeito depende de `wallets` porque a extensao entra no registro do Wallet
+ * Standard de forma assincrona: no primeiro render a lista costuma estar vazia.
+ */
+function SolanaAutoConnect() {
+  const wallets = useWallets()
+  const attempted = useRef(false)
+
+  useEffect(() => {
+    if (attempted.current) return
+
+    const savedKey = stateSync.getSelectedWallet()
+    if (!savedKey) return
+
+    const savedWalletName = savedKey.split(':')[0]
+    const wallet = wallets.find((w) => w.name === savedWalletName)
+    // Ainda nao registrada: o efeito roda de novo quando `wallets` mudar.
+    if (!wallet) return
+
+    attempted.current = true
+    try {
+      const feature = getWalletFeature(wallet, 'standard:connect') as ConnectFeature
+      void feature.connect({ silent: true }).catch(() => {
+        // Autorizacao revogada ou expirada. Fica desconectado.
+      })
+    } catch {
+      // Carteira sem suporte a standard:connect. Nada a fazer.
+    }
+  }, [wallets])
+
+  return null
+}
+
 export function SolanaProviders({ children }: { children: ReactNode }) {
   return (
     <SelectedWalletAccountContextProvider
-      filterWallets={supportsSolanaMainnet}
+      filterWallets={supportsChain}
       stateSync={stateSync}
     >
+      <SolanaAutoConnect />
       {children}
     </SelectedWalletAccountContextProvider>
   )
