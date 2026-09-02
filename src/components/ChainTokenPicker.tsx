@@ -29,6 +29,7 @@ export function ChainTokenPicker({
   /** Quando presente, restringe as redes ao que se atravessa a partir desta. */
   pairedWith,
   originAsset,
+  testnets,
   onPick,
   onCancel,
 }: {
@@ -37,6 +38,7 @@ export function ChainTokenPicker({
   pairedWith?: { chain: ChainKey; side: 'origin' | 'destination' }
   /** Origem escolhida, quando este painel esta escolhendo o destino. */
   originAsset?: Asset
+  testnets?: boolean
   onPick: (asset: Asset) => void
   onCancel: () => void
 }) {
@@ -46,8 +48,8 @@ export function ChainTokenPicker({
     if (!pairedWith) return { enabled: true, reason: '' }
     const support =
       pairedWith.side === 'origin'
-        ? routeSupport(pairedWith.chain, candidate)
-        : routeSupport(candidate, pairedWith.chain)
+        ? routeSupport(pairedWith.chain, candidate, { testnets })
+        : routeSupport(candidate, pairedWith.chain, { testnets })
     return { enabled: support.available, reason: support.available ? '' : support.reason }
   }
 

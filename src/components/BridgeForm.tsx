@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useSettings } from '@/app/settings-provider'
 import { AssetIcon } from '@/components/AssetIcon'
 import { ChainTokenPicker } from '@/components/ChainTokenPicker'
 import { EvmBridgePanel } from '@/components/EvmBridgePanel'
@@ -21,8 +22,10 @@ export function BridgeForm() {
   const [from, setFrom] = useState<Asset>(() => assetById('ethereum:ETH'))
   const [to, setTo] = useState<Asset>(() => assetById('base:ETH'))
   const [picking, setPicking] = useState<Picking>(null)
+  const { testnets } = useSettings()
 
-  const support = routeSupport(from.chain, to.chain)
+  const options = { testnets }
+  const support = routeSupport(from.chain, to.chain, options)
 
   /** Ao trocar um lado, conserta o outro se o par deixar de existir. */
   function pickFrom(asset: Asset) {
@@ -33,8 +36,8 @@ export function BridgeForm() {
     const forced = requiredDestination(asset)
     if (forced) {
       setTo(forced)
-    } else if (!routeSupport(asset.chain, to.chain).available) {
-      const fallback = firstReachableFrom(asset.chain)
+    } else if (!routeSupport(asset.chain, to.chain, options).available) {
+      const fallback = firstReachableFrom(asset.chain, options)
       if (fallback) setTo(fallback)
     }
     setPicking(null)
@@ -46,12 +49,12 @@ export function BridgeForm() {
   }
 
   function invert() {
-    if (!routeSupport(to.chain, from.chain).available) return
+    if (!routeSupport(to.chain, from.chain, options).available) return
     setFrom(to)
     setTo(from)
   }
 
-  const canInvert = routeSupport(to.chain, from.chain).available
+  const canInvert = routeSupport(to.chain, from.chain, options).available
 
   return (
     <div className="w-full max-w-md rounded-2xl border border-line bg-surface p-5">
@@ -65,6 +68,7 @@ export function BridgeForm() {
               : { chain: from.chain, side: 'origin' }
           }
           originAsset={picking === 'to' ? from : undefined}
+          testnets={testnets}
           onPick={picking === 'from' ? pickFrom : pickTo}
           onCancel={() => setPicking(null)}
         />
@@ -133,10 +137,13 @@ function AssetRow({
   )
 }
 
-function firstReachableFrom(chain: ChainKey): Asset | null {
+function firstReachableFrom(
+  chain: ChainKey,
+  options: { testnets?: boolean },
+): Asset | null {
   for (const candidate of ['base', 'ethereum', 'solana'] as ChainKey[]) {
     if (candidate === chain) continue
-    if (routeSupport(chain, candidate).available) {
+    if (routeSupport(chain, candidate, options).available) {
       const [asset] = assetsOn(candidate)
       if (asset) return asset
     }

@@ -137,7 +137,11 @@ export type RouteSupport =
  * `lifi` = agregador, para EVM <-> EVM.
  * `canonical` = contrato nativo da Base, para Solana -> Base.
  */
-export function routeSupport(from: ChainKey, to: ChainKey): RouteSupport {
+export function routeSupport(
+  from: ChainKey,
+  to: ChainKey,
+  options: { testnets?: boolean } = {},
+): RouteSupport {
   if (from === to) {
     return { available: false, reason: 'Pick two different networks.' }
   }
@@ -146,6 +150,16 @@ export function routeSupport(from: ChainKey, to: ChainKey): RouteSupport {
   const toInfo = CHAINS[to]
 
   if (fromInfo.family === 'evm' && toInfo.family === 'evm') {
+    // O LI.FI descontinuou suporte a testnet — bridges e exchanges tem quase nenhuma
+    // liquidez la. Entao com testnets ligado esta rota nao existe, e dizer isso e
+    // melhor do que cotar e falhar com erro do agregador.
+    if (options.testnets) {
+      return {
+        available: false,
+        reason:
+          'Aggregator routes are mainnet only. LI.FI dropped testnet support, so turn testnets off to bridge between Ethereum and Base.',
+      }
+    }
     return { available: true, engine: 'lifi' }
   }
 
@@ -172,10 +186,10 @@ export function routeSupport(from: ChainKey, to: ChainKey): RouteSupport {
 }
 
 /** Destinos possiveis a partir de uma origem, com o estado de cada um. */
-export function destinationsFrom(from: ChainKey) {
+export function destinationsFrom(from: ChainKey, options: { testnets?: boolean } = {}) {
   return CHAIN_LIST.filter((c) => c.key !== from).map((chain) => ({
     chain,
-    support: routeSupport(from, chain.key),
+    support: routeSupport(from, chain.key, options),
   }))
 }
 
