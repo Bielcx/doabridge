@@ -10,8 +10,8 @@
 
 - [ ] **URL do produto no ar.** Campo obrigatório. Sem deploy não dá pra submeter.
 - [ ] **Vídeo do time fundador, 1 a 5 minutos.** Obrigatório.
-- [ ] **Perfil no X.** Obrigatório em dois campos (empresa e fundador).
-- [ ] **Telegram e LinkedIn.** Obrigatórios.
+- [x] **Perfil no X.** `@usedoabridge`, nome de exibição "Do A Bridge".
+- [ ] **Telegram e LinkedIn.** Obrigatórios. Domínio `doabridge.com` registrado.
 
 ---
 
@@ -48,7 +48,7 @@ for a normal user.
 
 **X URL**
 
-> PENDENTE — confirmar se existe perfil do projeto.
+> https://x.com/usedoabridge
 
 **Which category best describes your company?**
 
@@ -86,7 +86,7 @@ and what did you learn from it?**
 
 **Email**
 
-> PENDENTE
+> gabriel@doabridge.com (Cloudflare Email Routing, encaminha pro Hotmail)
 
 **Telegram / X / LinkedIn**
 
