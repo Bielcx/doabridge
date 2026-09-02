@@ -5,9 +5,8 @@ import { useAccount } from 'wagmi'
 import { SolanaBridgeButton } from '@/components/SolanaBridgeButton'
 import { useSolanaAccount } from '@/hooks/useSolanaAccount'
 import { useSolanaBridgeState } from '@/hooks/useSolanaBridgeState'
+import { formatSol, toLamports } from '@/lib/solana/format'
 import { network } from '@/lib/solana/networks'
-
-const LAMPORTS_PER_SOL = 1_000_000_000n
 
 /**
  * Solana -> Base pelo bridge canonico da Base.
@@ -53,9 +52,15 @@ export function SolanaBridgePanel() {
           {evmAddress ? shorten(evmAddress) : 'Ethereum wallet not connected'}
         </Row>
         <Row label="Bridge fee">
-          {bridgeState
-            ? `~${formatSol(bridgeState.estimatedGasFeeLamports)} SOL`
-            : '—'}
+          {bridgeState ? `~${formatSol(bridgeState.fees.bridgeLamports)} SOL` : '—'}
+        </Row>
+        <Row label="Relay fee">
+          {bridgeState ? `~${formatSol(bridgeState.fees.relayLamports)} SOL` : '—'}
+        </Row>
+        <Row label="Total cost">
+          <span className="font-medium text-neutral-100">
+            {bridgeState ? `~${formatSol(bridgeState.fees.totalLamports)} SOL` : '—'}
+          </span>
         </Row>
       </dl>
 
@@ -79,26 +84,6 @@ export function SolanaBridgePanel() {
       </p>
     </div>
   )
-}
-
-function toLamports(value: string): bigint | null {
-  const trimmed = value.trim()
-  if (!trimmed) return null
-  if (!/^\d*\.?\d*$/.test(trimmed)) return null
-  const [whole = '0', fraction = ''] = trimmed.split('.')
-  const padded = (fraction + '000000000').slice(0, 9)
-  try {
-    return BigInt(whole || '0') * LAMPORTS_PER_SOL + BigInt(padded || '0')
-  } catch {
-    return null
-  }
-}
-
-function formatSol(lamports: bigint) {
-  const sol = Number(lamports) / Number(LAMPORTS_PER_SOL)
-  if (sol === 0) return '0'
-  if (sol < 0.000001) return '<0.000001'
-  return sol.toFixed(6).replace(/0+$/, '').replace(/\.$/, '')
 }
 
 function shorten(value: string) {

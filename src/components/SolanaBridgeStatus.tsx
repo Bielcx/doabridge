@@ -1,9 +1,8 @@
 'use client'
 
 import { useSolanaBridgeState } from '@/hooks/useSolanaBridgeState'
+import { formatSol } from '@/lib/solana/format'
 import { network } from '@/lib/solana/networks'
-
-const LAMPORTS_PER_SOL = 1_000_000_000
 
 /**
  * Estado do bridge nativo na rede ativa.
@@ -42,17 +41,10 @@ export function SolanaBridgeStatus() {
 
   return (
     <Line tone="muted">
-      Bridge live on {network.label} · fee approximately{' '}
-      {formatSol(data.estimatedGasFeeLamports)} SOL
+      Bridge live on {network.label} · total fee approximately{' '}
+      {formatSol(data.fees.totalLamports)} SOL
     </Line>
   )
-}
-
-function formatSol(lamports: bigint) {
-  const sol = Number(lamports) / LAMPORTS_PER_SOL
-  if (sol === 0) return '0'
-  if (sol < 0.000001) return '<0.000001'
-  return sol.toFixed(6).replace(/0+$/, '').replace(/\.$/, '')
 }
 
 function Line({

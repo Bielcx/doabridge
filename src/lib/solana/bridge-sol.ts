@@ -11,14 +11,9 @@ import {
 import { hexToBytes } from 'viem'
 import { BaseRelayer, Bridge } from '@/lib/base-bridge'
 import type { BridgeState } from './bridge-state'
-import { RELAY_GAS_LIMIT, SYSTEM_PROGRAM } from './constants'
+import { SYSTEM_PROGRAM } from './constants'
 import { network } from './networks'
-import {
-  messageToRelayPda,
-  outgoingMessagePda,
-  relayerCfgPda,
-  solVaultPda,
-} from './pda'
+import { messageToRelayPda, outgoingMessagePda, solVaultPda } from './pda'
 import { rpc } from './rpc'
 
 /**
@@ -59,11 +54,10 @@ export async function sendBridgeSol({
     throw new Error(`The bridge is paused on ${network.label}.`)
   }
 
-  const [solVault, { salt, pda: outgoingMessage }, cfg, { value: latestBlockhash }] =
+  const [solVault, { salt, pda: outgoingMessage }, { value: latestBlockhash }] =
     await Promise.all([
       solVaultPda(),
       outgoingMessagePda(),
-      relayerCfgPda(),
       rpc().getLatestBlockhash().send(),
     ])
 
@@ -97,22 +91,19 @@ export async function sendBridgeSol({
    * relayar por conta propria na Base, o que exige ETH la e mais duas etapas. Para o
    * fluxo de uma assinatura so, pagar o relay e obrigatorio.
    */
-  const cfgAccount = await BaseRelayer.fetchCfg(
-    rpc() as Parameters<typeof BaseRelayer.fetchCfg>[0],
-    cfg,
-  )
   const { salt: mtrSalt, pda: messageToRelay } = await messageToRelayPda()
 
   const payForRelay = BaseRelayer.getPayForRelayInstruction(
     {
       payer: signer,
-      cfg,
-      gasFeeReceiver: cfgAccount.data.gasConfig.gasFeeReceiver,
+      cfg: bridgeState.relayer.cfg,
+      gasFeeReceiver: bridgeState.relayer.gasFeeReceiver,
       messageToRelay,
       systemProgram: SYSTEM_PROGRAM,
       mtrSalt,
       outgoingMessage,
-      gasLimit: RELAY_GAS_LIMIT,
+      // Ja preso dentro dos limites que o programa aceita, na leitura do estado.
+      gasLimit: bridgeState.relayer.gasLimit,
     },
     { programAddress: network.solana.baseRelayerProgram },
   )

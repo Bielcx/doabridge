@@ -1,69 +1,137 @@
 import type { Address } from '@solana/kit'
-import { Bridge } from '@/lib/base-bridge'
-import { bridgePda } from './pda'
+import { BaseRelayer, Bridge } from '@/lib/base-bridge'
+import { RELAY_GAS_LIMIT } from './constants'
 import { network } from './networks'
+import { bridgePda, relayerCfgPda } from './pda'
 import { rpc } from './rpc'
 
 /**
- * Leitura do estado on-chain da conta Bridge.
+ * Leitura do estado on-chain dos DOIS programas envolvidos numa transferencia
+ * Solana -> Base: o bridge e o relayer.
  *
- * E a unica peca do fluxo Solana -> Base que nao e constante nem derivavel de seed:
- * quem recebe a taxa de gas, se o bridge esta pausado, e os parametros de preco.
+ * Precisa dos dois porque o custo real do usuario tambem sai dos dois, e porque o
+ * `gasFeeReceiver` de cada um e uma conta diferente.
  */
+
+export type BridgeFees = {
+  /** Taxa do programa de bridge. */
+  bridgeLamports: bigint
+  /** Taxa paga ao relayer pra executar o lado da Base. Costuma ser a maior. */
+  relayLamports: bigint
+  /** O que o usuario paga de fato, alem do valor transferido. */
+  totalLamports: bigint
+}
 
 export type BridgeState = {
   address: Address
-  /** Conta que recebe a taxa de gas cobrada na Solana. */
+  /** Conta que recebe a taxa do bridge. */
   gasFeeReceiver: Address
   /** Parada de emergencia. Se true, nao adianta assinar nada. */
   paused: boolean
   nonce: bigint
   /** Ultimo bloco da Base que a Solana conhece. Serve de relogio pro lado inverso. */
   baseBlockNumber: bigint
-  /**
-   * Taxa estimada, em lamports.
-   *
-   * Formula do programa (solana_to_base/instructions/mod.rs):
-   *   gas_per_call * base_fee * gas_cost_scaler / gas_cost_scaler_dp
-   *
-   * ATENCAO: usamos `currentBaseFee` como esta gravado, mas o programa chama
-   * `refresh_base_fee()` antes de cobrar — um decaimento estilo EIP-1559 que reduz a
-   * taxa conforme janelas ociosas passam. Entao este numero e uma ESTIMATIVA, e o
-   * erro tende a ser pra cima (cobramos menos do que mostramos), que e a direcao
-   * segura pra mostrar pro usuario. Replicar o decaimento exato e trabalho pra
-   * depois, se o numero comecar a divergir de forma incomoda.
-   */
-  estimatedGasFeeLamports: bigint
+
+  /** Config do relayer, necessaria pra montar o pay_for_relay. */
+  relayer: {
+    cfg: Address
+    gasFeeReceiver: Address
+    /**
+     * Teto de gas efetivamente usado, ja preso dentro dos limites que o programa
+     * aceita. O programa rejeita fora da faixa, entao vale conferir aqui em vez de
+     * descobrir com transacao revertida.
+     */
+    gasLimit: bigint
+  }
+
+  fees: BridgeFees
 }
 
 /**
- * Retorna null quando a conta nao existe. Isso NAO e um detalhe: em devnet o time da
- * Base pode ter refeito o deploy, e nesse caso o endereco derivado aponta pra nada.
- * Melhor a interface dizer "bridge indisponivel nesta rede" do que estourar um erro
- * de decodificacao incompreensivel.
+ * Formula dos dois programas:
+ *   custo = gas * base_fee * gas_cost_scaler / gas_cost_scaler_dp
+ * onde `gas` e o `gas_per_call` do bridge e o `gas_limit` do relayer.
+ *
+ * ATENCAO: os programas chamam `refresh_base_fee()` antes de cobrar — um decaimento
+ * estilo EIP-1559 que reduz a taxa conforme janelas ociosas passam. Usamos o
+ * `currentBaseFee` como esta gravado, entao isto e ESTIMATIVA. Na pratica bateu
+ * exato nos testes, e o erro tende a ser pra cima, que e a direcao segura.
+ */
+function gasCost(
+  gas: bigint,
+  baseFee: bigint,
+  scaler: bigint,
+  scalerDp: bigint,
+): bigint {
+  if (scalerDp === 0n) return 0n
+  return (gas * baseFee * scaler) / scalerDp
+}
+
+function clamp(value: bigint, min: bigint, max: bigint): bigint {
+  if (value < min) return min
+  if (value > max) return max
+  return value
+}
+
+/**
+ * Retorna null quando alguma das contas nao existe. Em devnet o time da Base pode
+ * refazer o deploy, e nesse caso o endereco derivado aponta pra nada.
  */
 export async function fetchBridgeState(): Promise<BridgeState | null> {
-  const pda = await bridgePda()
-  const account = await Bridge.fetchMaybeBridge(
-    rpc() as Parameters<typeof Bridge.fetchMaybeBridge>[0],
-    pda,
+  const [bridgeAddress, cfgAddress] = await Promise.all([bridgePda(), relayerCfgPda()])
+
+  const [bridgeAccount, cfgAccount] = await Promise.all([
+    Bridge.fetchMaybeBridge(
+      rpc() as Parameters<typeof Bridge.fetchMaybeBridge>[0],
+      bridgeAddress,
+    ),
+    BaseRelayer.fetchMaybeCfg(
+      rpc() as Parameters<typeof BaseRelayer.fetchMaybeCfg>[0],
+      cfgAddress,
+    ),
+  ])
+
+  if (!bridgeAccount.exists || !cfgAccount.exists) return null
+
+  const bridge = bridgeAccount.data
+  const cfg = cfgAccount.data
+
+  const bridgeLamports = gasCost(
+    bridge.gasConfig.gasPerCall,
+    bridge.eip1559.currentBaseFee,
+    bridge.gasConfig.gasCostScaler,
+    bridge.gasConfig.gasCostScalerDp,
   )
 
-  if (!account.exists) return null
+  const gasLimit = clamp(
+    RELAY_GAS_LIMIT,
+    cfg.gasConfig.minGasLimitPerMessage,
+    cfg.gasConfig.maxGasLimitPerMessage,
+  )
 
-  const { gasConfig, eip1559, paused, nonce, baseBlockNumber } = account.data
-
-  const estimatedGasFeeLamports =
-    (gasConfig.gasPerCall * eip1559.currentBaseFee * gasConfig.gasCostScaler) /
-    gasConfig.gasCostScalerDp
+  const relayLamports = gasCost(
+    gasLimit,
+    cfg.eip1559.currentBaseFee,
+    cfg.gasConfig.gasCostScaler,
+    cfg.gasConfig.gasCostScalerDp,
+  )
 
   return {
-    address: pda,
-    gasFeeReceiver: gasConfig.gasFeeReceiver,
-    paused,
-    nonce,
-    baseBlockNumber,
-    estimatedGasFeeLamports,
+    address: bridgeAddress,
+    gasFeeReceiver: bridge.gasConfig.gasFeeReceiver,
+    paused: bridge.paused,
+    nonce: bridge.nonce,
+    baseBlockNumber: bridge.baseBlockNumber,
+    relayer: {
+      cfg: cfgAddress,
+      gasFeeReceiver: cfg.gasConfig.gasFeeReceiver,
+      gasLimit,
+    },
+    fees: {
+      bridgeLamports,
+      relayLamports,
+      totalLamports: bridgeLamports + relayLamports,
+    },
   }
 }
 
