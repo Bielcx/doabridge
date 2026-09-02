@@ -1,0 +1,74 @@
+# Do A Bridge
+
+Bridge entre Ethereum mainnet e Base. O diferencial planejado — bridge nativo
+Base ↔ Solana — é a v2; ver `docs/base-solana-viabilidade.md`.
+
+## Rodar
+
+```bash
+npm install
+cp .env.example .env.local   # opcional, o app roda sem isso
+npm run dev
+```
+
+Sem `.env.local` o app funciona com carteiras injetadas (MetaMask, Rabby) e Coinbase
+Wallet, e usa RPC público. Com um `NEXT_PUBLIC_WC_PROJECT_ID` (gratuito em
+cloud.reown.com) o WalletConnect entra na lista e habilita carteiras mobile por QR.
+
+## Estrutura
+
+```
+src/
+  app/
+    layout.tsx        reidrata o estado da carteira via cookie no SSR
+    providers.tsx     ← fronteira de isolamento (RainbowKit vive aqui)
+    page.tsx
+  components/
+    ConnectWallet.tsx ← fronteira de isolamento (botão de conectar)
+    BridgeForm.tsx    tela principal, fala só com wagmi
+  hooks/
+    useBridgeRoutes.ts     cotação via react-query, revalida a cada 20s
+    useBridgeExecution.ts  executeRoute do LI.FI + estado renderizável
+  lib/
+    wagmi.ts          ← fronteira de isolamento (config das chains e conectores)
+    lifi.ts           configuração do LI.FI SDK e busca de rotas
+    tokens.ts         lista curta e explícita de tokens do MVP
+```
+
+## Regra de isolamento da carteira
+
+Só três arquivos importam de `@rainbow-me/rainbowkit`: `lib/wagmi.ts`,
+`app/providers.tsx` e `components/ConnectWallet.tsx`. Todo o resto usa hooks do wagmi.
+
+O motivo: quando a v2 trouxer Solana, vamos reavaliar RainbowKit contra Reown AppKit
+e contra `@solana/wallet-adapter` em paralelo. Mantendo esse limite, a troca toca três
+arquivos em vez de espalhar pela árvore de componentes. Se aparecer um
+`useConnectModal()` no meio de um componente de feature, o isolamento morreu.
+
+## Decisões de versão (e por quê)
+
+**`@lifi/sdk` fixado em 3.x, não 4.x.** A v4 removeu o provider EVM do pacote core e
+ainda não publicou um substituto — existe `@lifi/sdk-provider-solana` no npm, mas não
+existe `@lifi/sdk-provider-evm`. A v3.16.3 exporta `EVM()` e `createConfig()` e é o que
+funciona hoje. Reavaliar quando o provider EVM da v4 sair.
+
+**`wagmi` fixado em 2.x, não 3.x.** O RainbowKit 2.2.11 (o latest) declara
+`peerDependencies: { wagmi: "^2.9.0" }`. Não existe RainbowKit v3. Subir o wagmi para 3
+quebra o peer.
+
+**`@x402/*` nas dependências, sem o app usar.** O conector `baseAccount` do
+`@wagmi/connectors`, que o índice do RainbowKit importa, arrasta o `@coinbase/cdp-sdk`,
+que faz import estático de `@x402/core`, `@x402/evm` e `@x402/svm`. Eles são peer
+dependencies *opcionais* do cdp-sdk, mas o Turbopack resolve imports estaticamente e o
+build quebra sem eles. Tentei stub com módulo vazio: não funciona, o Turbopack valida
+os named exports. Instalar os quatro é o caminho limpo. Se um dia o RainbowKit parar de
+puxar o `baseAccount`, dá pra remover.
+
+## Estado
+
+- [x] Conectar carteira
+- [x] Cotação de rota Ethereum ↔ Base via LI.FI
+- [x] Execução do bridge
+- [ ] Gas e preços em tempo real (Basescan)
+- [ ] Histórico de transações
+- [ ] Bridge nativo Base ↔ Solana (v2)
