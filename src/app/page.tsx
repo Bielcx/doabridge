@@ -1,4 +1,5 @@
 import { BridgeForm } from '@/components/BridgeForm'
+import { ConnectSolanaWallet } from '@/components/ConnectSolanaWallet'
 import { ConnectWallet } from '@/components/ConnectWallet'
 
 export default function Home() {
@@ -9,7 +10,10 @@ export default function Home() {
           <h1 className="text-xl font-semibold tracking-tight">Do A Bridge</h1>
           <p className="text-sm text-neutral-500">Ethereum and Base, both ways.</p>
         </div>
-        <ConnectWallet />
+        <div className="flex items-center gap-2">
+          <ConnectSolanaWallet />
+          <ConnectWallet />
+        </div>
       </header>
 
       <div className="flex flex-1 items-start justify-center">

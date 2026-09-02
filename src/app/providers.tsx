@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useState, type ReactNode } from 'react'
 import { WagmiProvider, type State } from 'wagmi'
 import { wagmiConfig } from '@/lib/wagmi'
+import { SolanaProviders } from './solana-providers'
 
 /**
  * FRONTEIRA DE ISOLAMENTO — parte 2 de 2. Ver o comentario em lib/wagmi.ts.
@@ -32,7 +33,7 @@ export function Providers({
         <RainbowKitProvider
           theme={darkTheme({ accentColor: '#0052ff', borderRadius: 'large' })}
         >
-          {children}
+          <SolanaProviders>{children}</SolanaProviders>
         </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>
