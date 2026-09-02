@@ -3,6 +3,7 @@ import { headers } from 'next/headers'
 import { cookieToInitialState } from 'wagmi'
 import { wagmiConfig } from '@/lib/wagmi'
 import { Providers } from './providers'
+import { THEME_INIT_SCRIPT } from '@/lib/theme'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -18,8 +19,12 @@ export default async function RootLayout({
   const initialState = cookieToInitialState(wagmiConfig, (await headers()).get('cookie'))
 
   return (
-    <html lang="en">
-      <body className="min-h-screen bg-neutral-950 text-neutral-100 antialiased">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Antes da primeira pintura, pra nao existir flash de tema errado. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
+      <body className="min-h-screen antialiased">
         <Providers initialState={initialState}>{children}</Providers>
       </body>
     </html>

@@ -76,23 +76,27 @@ export const NETWORKS: Record<NetworkName, NetworkConfig> = {
   },
 }
 
-function resolveNetwork(): NetworkName {
-  const raw = process.env.NEXT_PUBLIC_NETWORK
-  if (raw === 'mainnet') return 'mainnet'
-  if (raw === 'devnet' || !raw) return 'devnet'
-  // Valor escrito errado nao pode virar mainnet por acidente.
-  console.warn(`NEXT_PUBLIC_NETWORK="${raw}" nao reconhecido. Usando devnet.`)
-  return 'devnet'
+/**
+ * Estado inicial do interruptor de testnets.
+ *
+ * A rede deixou de ser constante de build e virou preferencia do usuario — a
+ * variavel de ambiente agora define so o PADRAO de quem abre o app pela primeira
+ * vez. Continua caindo em testnet quando nao configurada, pela mesma razao de
+ * antes: esquecer de configurar deve custar zero, nunca dinheiro real.
+ */
+export const DEFAULT_TESTNETS = process.env.NEXT_PUBLIC_NETWORK !== 'mainnet'
+
+/**
+ * RPC da Solana por rede. O publico tem rate limit agressivo; em producao use um
+ * dedicado. A variavel so sobrescreve a mainnet, porque o RPC pago normalmente e
+ * contratado pra ela.
+ */
+export function solanaRpcUrl(config: NetworkConfig): string {
+  if (config.name === 'mainnet' && process.env.NEXT_PUBLIC_SOLANA_RPC) {
+    return process.env.NEXT_PUBLIC_SOLANA_RPC
+  }
+  return config.solana.defaultRpcUrl
 }
-
-export const ACTIVE_NETWORK = resolveNetwork()
-export const network = NETWORKS[ACTIVE_NETWORK]
-
-export const isMainnet = ACTIVE_NETWORK === 'mainnet'
-
-/** RPC da Solana. O publico tem rate limit agressivo; em producao use um dedicado. */
-export const SOLANA_RPC_URL =
-  process.env.NEXT_PUBLIC_SOLANA_RPC || network.solana.defaultRpcUrl
 
 /** Chave onde guardamos qual conta Solana o usuario escolheu da ultima vez. */
 export const SELECTED_ACCOUNT_STORAGE_KEY = 'doabridge:solana-account'

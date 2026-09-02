@@ -1,7 +1,7 @@
 import type { Address } from '@solana/kit'
 import { BaseRelayer, Bridge } from '@/lib/base-bridge'
 import { RELAY_GAS_LIMIT } from './constants'
-import { network } from './networks'
+import type { NetworkConfig } from './networks'
 import { bridgePda, relayerCfgPda } from './pda'
 import { rpc } from './rpc'
 
@@ -77,16 +77,21 @@ function clamp(value: bigint, min: bigint, max: bigint): bigint {
  * Retorna null quando alguma das contas nao existe. Em devnet o time da Base pode
  * refazer o deploy, e nesse caso o endereco derivado aponta pra nada.
  */
-export async function fetchBridgeState(): Promise<BridgeState | null> {
-  const [bridgeAddress, cfgAddress] = await Promise.all([bridgePda(), relayerCfgPda()])
+export async function fetchBridgeState(
+  network: NetworkConfig,
+): Promise<BridgeState | null> {
+  const [bridgeAddress, cfgAddress] = await Promise.all([
+    bridgePda(network),
+    relayerCfgPda(network),
+  ])
 
   const [bridgeAccount, cfgAccount] = await Promise.all([
     Bridge.fetchMaybeBridge(
-      rpc() as Parameters<typeof Bridge.fetchMaybeBridge>[0],
+      rpc(network) as Parameters<typeof Bridge.fetchMaybeBridge>[0],
       bridgeAddress,
     ),
     BaseRelayer.fetchMaybeCfg(
-      rpc() as Parameters<typeof BaseRelayer.fetchMaybeCfg>[0],
+      rpc(network) as Parameters<typeof BaseRelayer.fetchMaybeCfg>[0],
       cfgAddress,
     ),
   ])
@@ -135,5 +140,3 @@ export async function fetchBridgeState(): Promise<BridgeState | null> {
   }
 }
 
-/** Rotulo da rede ativa, pra mensagem de erro fazer sentido. */
-export const activeNetworkLabel = network.label

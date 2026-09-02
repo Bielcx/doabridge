@@ -2,8 +2,9 @@
 
 import { SelectedWalletAccountContextProvider } from '@solana/react'
 import { getWalletFeature, useWallets, type UiWallet } from '@wallet-standard/react'
-import { useEffect, useRef, type ReactNode } from 'react'
-import { SELECTED_ACCOUNT_STORAGE_KEY, network } from '@/lib/solana/networks'
+import { useCallback, useEffect, useRef, type ReactNode } from 'react'
+import { SELECTED_ACCOUNT_STORAGE_KEY } from '@/lib/solana/networks'
+import { useNetwork } from './settings-provider'
 
 /**
  * FRONTEIRA DE ISOLAMENTO — lado Solana.
@@ -16,11 +17,6 @@ import { SELECTED_ACCOUNT_STORAGE_KEY, network } from '@/lib/solana/networks'
  * abstraindo as duas — sao dois enderecos reais em duas redes, e o usuario precisa
  * enxergar os dois.
  */
-
-/** So carteiras que declaram suporte a rede que o app usa aparecem na lista. */
-function supportsChain(wallet: UiWallet) {
-  return wallet.chains.includes(network.solana.chain)
-}
 
 /**
  * Persistencia da conta escolhida. Envolvida em try/catch porque localStorage lanca
@@ -101,9 +97,21 @@ function SolanaAutoConnect() {
 }
 
 export function SolanaProviders({ children }: { children: ReactNode }) {
+  const network = useNetwork()
+
+  /**
+   * So carteiras que declaram suporte a rede ativa aparecem na lista. Muda junto com
+   * o interruptor de testnets — trocar de rede pode desselecionar a conta atual, o
+   * que e o comportamento correto.
+   */
+  const filterWallets = useCallback(
+    (wallet: UiWallet) => wallet.chains.includes(network.solana.chain),
+    [network.solana.chain],
+  )
+
   return (
     <SelectedWalletAccountContextProvider
-      filterWallets={supportsChain}
+      filterWallets={filterWallets}
       stateSync={stateSync}
     >
       <SolanaAutoConnect />

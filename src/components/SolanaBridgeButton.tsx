@@ -5,7 +5,7 @@ import type { UiWalletAccount } from '@wallet-standard/react'
 import { useState } from 'react'
 import { sendBridgeSol, type SendBridgeSolResult } from '@/lib/solana/bridge-sol'
 import type { BridgeState } from '@/lib/solana/bridge-state'
-import { network } from '@/lib/solana/networks'
+import { useNetwork } from '@/app/settings-provider'
 
 /**
  * FRONTEIRA DE ISOLAMENTO — lado Solana.
@@ -35,6 +35,7 @@ export function SolanaBridgeButton({
   recipient,
   bridgeState,
 }: Props) {
+  const network = useNetwork()
   const signer = useWalletAccountTransactionSendingSigner(account, network.solana.chain)
   const [status, setStatus] = useState<Status>({ kind: 'idle' })
 
@@ -55,6 +56,7 @@ export function SolanaBridgeButton({
               amountLamports,
               recipient,
               bridgeState,
+              network,
             })
             setStatus({ kind: 'sent', result })
           } catch (e) {
@@ -64,27 +66,27 @@ export function SolanaBridgeButton({
             })
           }
         }}
-        className="w-full rounded-xl bg-blue-600 px-4 py-3 font-medium transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-neutral-800 disabled:text-neutral-500"
+        className="w-full rounded-xl bg-accent px-4 py-3 font-medium transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-sunken disabled:text-faint"
       >
         {status.kind === 'sending' ? 'Confirm in your wallet...' : 'Do a bridge'}
       </button>
 
       {status.kind === 'error' && (
-        <p className="text-sm text-red-400" role="alert">
+        <p className="text-sm text-danger" role="alert">
           {status.message}
         </p>
       )}
 
       {status.kind === 'sent' && (
         <div className="space-y-1 text-sm">
-          <p className="text-green-400">
+          <p className="text-success">
             Sent. Base should receive it in about 15 seconds.
           </p>
           <a
             href={status.result.explorerUrl}
             target="_blank"
             rel="noreferrer"
-            className="text-xs text-neutral-400 underline underline-offset-2 hover:text-neutral-200"
+            className="text-xs text-muted underline underline-offset-2 hover:text-ink"
           >
             View transaction
           </a>

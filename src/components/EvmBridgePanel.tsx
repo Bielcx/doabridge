@@ -34,7 +34,7 @@ export function EvmBridgePanel({
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <label className="block text-sm text-neutral-400" htmlFor="evm-amount">
+        <label className="block text-sm text-muted" htmlFor="evm-amount">
           Amount
         </label>
         <div className="flex gap-2">
@@ -44,12 +44,12 @@ export function EvmBridgePanel({
             placeholder="0.0"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-3 py-2 text-lg outline-none focus:border-blue-500"
+            className="w-full rounded-xl border border-line bg-sunken px-3 py-2 text-lg outline-none focus:border-accent"
           />
           <select
             value={symbol}
             onChange={(e) => setSymbol(e.target.value)}
-            className="rounded-xl border border-neutral-700 bg-neutral-950 px-3 py-2 text-sm"
+            className="rounded-xl border border-line bg-sunken px-3 py-2 text-sm"
             aria-label="Token"
           >
             {TOKENS.map((t) => (
@@ -73,17 +73,17 @@ export function EvmBridgePanel({
         type="button"
         disabled={!isConnected || !best || running}
         onClick={() => best && execute(best)}
-        className="w-full rounded-xl bg-blue-600 px-4 py-3 font-medium transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:bg-neutral-800 disabled:text-neutral-500"
+        className="w-full rounded-xl bg-accent px-4 py-3 font-medium transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-sunken disabled:text-faint"
       >
         {!isConnected ? 'Connect wallet' : running ? 'Bridging...' : 'Do a bridge'}
       </button>
 
       {state.status === 'error' && (
-        <p className="text-sm text-red-400" role="alert">
+        <p className="text-sm text-danger" role="alert">
           {state.message}
         </p>
       )}
-      {state.status === 'done' && <p className="text-sm text-green-400">Transfer complete.</p>}
+      {state.status === 'done' && <p className="text-sm text-success">Transfer complete.</p>}
     </div>
   )
 }
@@ -97,11 +97,11 @@ function QuoteLine({
   error: string | null
   receive: string | null
 }) {
-  if (error) return <p className="text-sm text-red-400">{error}</p>
-  if (loading) return <p className="text-sm text-neutral-400">Finding a route...</p>
-  if (!receive) return <p className="text-sm text-neutral-600">Enter an amount to get a quote.</p>
+  if (error) return <p className="text-sm text-danger">{error}</p>
+  if (loading) return <p className="text-sm text-muted">Finding a route...</p>
+  if (!receive) return <p className="text-sm text-faint">Enter an amount to get a quote.</p>
   return (
-    <p className="text-sm text-neutral-300">
+    <p className="text-sm text-ink">
       You receive approximately <span className="font-medium">{receive}</span>
     </p>
   )

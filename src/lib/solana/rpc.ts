@@ -1,10 +1,21 @@
 import { createSolanaRpc } from '@solana/kit'
-import { SOLANA_RPC_URL } from './networks'
+import { solanaRpcUrl, type NetworkConfig } from './networks'
 
-let client: ReturnType<typeof createSolanaRpc> | null = null
+const clients = new Map<string, ReturnType<typeof createSolanaRpc>>()
 
-/** Cliente RPC unico do app. Criar um por chamada desperdicia conexao. */
-export function rpc() {
-  client ??= createSolanaRpc(SOLANA_RPC_URL)
+/**
+ * Cliente RPC por rede, reaproveitado entre chamadas.
+ *
+ * Um mapa em vez de um cliente unico porque a rede virou preferencia do usuario:
+ * ele pode alternar entre devnet e mainnet sem recarregar a pagina, e cada uma
+ * precisa do seu endpoint.
+ */
+export function rpc(network: NetworkConfig) {
+  const url = solanaRpcUrl(network)
+  let client = clients.get(url)
+  if (!client) {
+    client = createSolanaRpc(url)
+    clients.set(url, client)
+  }
   return client
 }

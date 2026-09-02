@@ -12,7 +12,7 @@ import { hexToBytes } from 'viem'
 import { BaseRelayer, Bridge } from '@/lib/base-bridge'
 import type { BridgeState } from './bridge-state'
 import { SYSTEM_PROGRAM } from './constants'
-import { network } from './networks'
+import type { NetworkConfig } from './networks'
 import { messageToRelayPda, outgoingMessagePda, solVaultPda } from './pda'
 import { rpc } from './rpc'
 
@@ -37,6 +37,8 @@ export type SendBridgeSolParams = {
   recipient: `0x${string}`
   /** Estado lido da chain — e dele que sai o gasFeeReceiver. */
   bridgeState: BridgeState
+  /** Rede em que a transferencia acontece. */
+  network: NetworkConfig
 }
 
 export type SendBridgeSolResult = {
@@ -49,6 +51,7 @@ export async function sendBridgeSol({
   amountLamports,
   recipient,
   bridgeState,
+  network,
 }: SendBridgeSolParams): Promise<SendBridgeSolResult> {
   if (bridgeState.paused) {
     throw new Error(`The bridge is paused on ${network.label}.`)
@@ -56,9 +59,9 @@ export async function sendBridgeSol({
 
   const [solVault, { salt, pda: outgoingMessage }, { value: latestBlockhash }] =
     await Promise.all([
-      solVaultPda(),
-      outgoingMessagePda(),
-      rpc().getLatestBlockhash().send(),
+      solVaultPda(network),
+      outgoingMessagePda(network),
+      rpc(network).getLatestBlockhash().send(),
     ])
 
   const instruction = Bridge.getBridgeSolInstruction(
@@ -91,7 +94,7 @@ export async function sendBridgeSol({
    * relayar por conta propria na Base, o que exige ETH la e mais duas etapas. Para o
    * fluxo de uma assinatura so, pagar o relay e obrigatorio.
    */
-  const { salt: mtrSalt, pda: messageToRelay } = await messageToRelayPda()
+  const { salt: mtrSalt, pda: messageToRelay } = await messageToRelayPda(network)
 
   const payForRelay = BaseRelayer.getPayForRelayInstruction(
     {

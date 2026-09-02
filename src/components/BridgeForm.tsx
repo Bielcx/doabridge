@@ -25,12 +25,12 @@ export function BridgeForm() {
   const route = ROUTES.find((r) => r.id === routeId)!
 
   return (
-    <div className="w-full max-w-md space-y-4 rounded-2xl border border-neutral-800 bg-neutral-900/60 p-5">
-      <span className="text-sm text-neutral-400">Transfer</span>
+    <div className="w-full max-w-md space-y-4 rounded-2xl border border-line bg-surface p-5">
+      <span className="text-sm text-muted">Transfer</span>
 
       <div className="grid grid-cols-2 gap-3">
-        <label className="rounded-xl border border-neutral-800 bg-neutral-950 px-3 py-2">
-          <span className="block text-xs uppercase tracking-wide text-neutral-500">from</span>
+        <label className="rounded-xl border border-line bg-sunken px-3 py-2">
+          <span className="block text-xs uppercase tracking-wide text-muted">from</span>
           <select
             value={routeId}
             onChange={(e) => setRouteId(e.target.value as RouteId)}
@@ -44,8 +44,8 @@ export function BridgeForm() {
           </select>
         </label>
 
-        <div className="rounded-xl border border-neutral-800 bg-neutral-950 px-3 py-2">
-          <span className="block text-xs uppercase tracking-wide text-neutral-500">to</span>
+        <div className="rounded-xl border border-line bg-sunken px-3 py-2">
+          <span className="block text-xs uppercase tracking-wide text-muted">to</span>
           <span className="block py-0.5 text-base">{route.to}</span>
         </div>
       </div>

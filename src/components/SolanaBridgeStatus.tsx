@@ -2,7 +2,7 @@
 
 import { useSolanaBridgeState } from '@/hooks/useSolanaBridgeState'
 import { formatSol } from '@/lib/solana/format'
-import { network } from '@/lib/solana/networks'
+import { useNetwork } from '@/app/settings-provider'
 
 /**
  * Estado do bridge nativo na rede ativa.
@@ -12,6 +12,7 @@ import { network } from '@/lib/solana/networks'
  * transacao que vai falhar custa tempo e confianca.
  */
 export function SolanaBridgeStatus() {
+  const network = useNetwork()
   const { data, isPending, error } = useSolanaBridgeState()
 
   if (isPending) {
@@ -55,7 +56,7 @@ function Line({
   children: React.ReactNode
 }) {
   return (
-    <p className={`text-xs ${tone === 'bad' ? 'text-amber-400' : 'text-neutral-500'}`}>
+    <p className={`text-xs ${tone === 'bad' ? 'text-warn' : 'text-muted'}`}>
       {children}
     </p>
   )

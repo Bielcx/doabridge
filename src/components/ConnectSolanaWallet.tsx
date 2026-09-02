@@ -21,7 +21,7 @@ export function ConnectSolanaWallet() {
       <button
         type="button"
         onClick={() => setSelectedAccount(undefined)}
-        className="rounded-xl border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm transition hover:border-neutral-500"
+        className="rounded-xl border border-line bg-surface px-3 py-2 text-sm transition hover:border-accent"
         title={selectedAccount.address}
       >
         {shorten(selectedAccount.address)}
@@ -34,15 +34,15 @@ export function ConnectSolanaWallet() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="rounded-xl border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm transition hover:border-neutral-500"
+        className="rounded-xl border border-line bg-surface px-3 py-2 text-sm transition hover:border-accent"
       >
         Connect Solana
       </button>
 
       {open && (
-        <div className="absolute right-0 z-10 mt-2 w-56 overflow-hidden rounded-xl border border-neutral-800 bg-neutral-950 shadow-xl">
+        <div className="absolute right-0 z-10 mt-2 w-56 overflow-hidden rounded-xl border border-line bg-sunken shadow-xl">
           {wallets.length === 0 ? (
-            <p className="px-3 py-3 text-sm text-neutral-500">
+            <p className="px-3 py-3 text-sm text-muted">
               No Solana wallet detected. Install Phantom or Solflare.
             </p>
           ) : (
@@ -90,15 +90,15 @@ function WalletRow({
           setError(e instanceof Error ? e.message : 'Could not connect')
         }
       }}
-      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition hover:bg-neutral-900 disabled:opacity-50"
+      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition hover:bg-surface disabled:opacity-50"
     >
       {wallet.icon && (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={wallet.icon} alt="" className="h-5 w-5 rounded" />
       )}
       <span className="flex-1">{wallet.name}</span>
-      {isConnecting && <span className="text-xs text-neutral-500">...</span>}
-      {error && <span className="text-xs text-red-400">!</span>}
+      {isConnecting && <span className="text-xs text-muted">...</span>}
+      {error && <span className="text-xs text-danger">!</span>}
     </button>
   )
 }

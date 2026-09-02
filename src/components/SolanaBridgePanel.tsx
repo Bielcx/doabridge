@@ -8,7 +8,7 @@ import { useSolanaBalance } from '@/hooks/useSolanaBalance'
 import { useSolanaBridgeState } from '@/hooks/useSolanaBridgeState'
 import { RENT_BUFFER_LAMPORTS } from '@/lib/solana/constants'
 import { formatSol, toLamports } from '@/lib/solana/format'
-import { network } from '@/lib/solana/networks'
+import { useNetwork } from '@/app/settings-provider'
 
 /**
  * Solana -> Base pelo bridge canonico da Base.
@@ -18,6 +18,7 @@ import { network } from '@/lib/solana/networks'
  * um deles seria esconder pra onde o dinheiro vai.
  */
 export function SolanaBridgePanel() {
+  const network = useNetwork()
   const solanaAccount = useSolanaAccount()
   const { address: evmAddress } = useAccount()
   const { data: bridgeState } = useSolanaBridgeState()
@@ -52,17 +53,17 @@ export function SolanaBridgePanel() {
     <div className="space-y-4">
       <div className="space-y-2">
         <div className="flex items-baseline justify-between">
-          <label className="block text-sm text-neutral-400" htmlFor="sol-amount">
+          <label className="block text-sm text-muted" htmlFor="sol-amount">
             Amount
           </label>
           {balance !== undefined && (
-            <span className="text-xs text-neutral-500">
+            <span className="text-xs text-muted">
               Balance {formatSol(balance)} SOL
               {maxLamports !== null && maxLamports > 0n && (
                 <button
                   type="button"
                   onClick={() => setAmount(formatSol(maxLamports))}
-                  className="ml-2 text-neutral-400 underline underline-offset-2 hover:text-neutral-200"
+                  className="ml-2 text-muted underline underline-offset-2 hover:text-ink"
                 >
                   Max
                 </button>
@@ -77,9 +78,9 @@ export function SolanaBridgePanel() {
             placeholder="0.0"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            className="w-full rounded-xl border border-neutral-700 bg-neutral-950 px-3 py-2 text-lg outline-none focus:border-blue-500"
+            className="w-full rounded-xl border border-line bg-sunken px-3 py-2 text-lg outline-none focus:border-accent"
           />
-          <span className="flex items-center rounded-xl border border-neutral-700 bg-neutral-950 px-3 text-sm text-neutral-400">
+          <span className="flex items-center rounded-xl border border-line bg-sunken px-3 text-sm text-muted">
             SOL
           </span>
         </div>
@@ -99,21 +100,21 @@ export function SolanaBridgePanel() {
           {bridgeState ? `~${formatSol(bridgeState.fees.relayLamports)} SOL` : '—'}
         </Row>
         <Row label="Total cost">
-          <span className="font-medium text-neutral-100">
+          <span className="font-medium text-ink">
             {bridgeState ? `~${formatSol(bridgeState.fees.totalLamports)} SOL` : '—'}
           </span>
         </Row>
       </dl>
 
       {insufficient && (
-        <p className="text-sm text-amber-400" role="alert">
+        <p className="text-sm text-warn" role="alert">
           Not enough SOL. You need {formatSol(shortfall!)} more to cover this transfer
           plus fees.
         </p>
       )}
 
       {!solanaAccount || !evmAddress ? (
-        <p className="rounded-xl border border-neutral-800 bg-neutral-950 px-3 py-3 text-sm text-neutral-400">
+        <p className="rounded-xl border border-line bg-sunken px-3 py-3 text-sm text-muted">
           Connect both wallets to bridge. The Solana one signs and pays; the Ethereum
           one receives on Base.
         </p>
@@ -126,7 +127,7 @@ export function SolanaBridgePanel() {
         />
       )}
 
-      <p className="text-xs text-neutral-600">
+      <p className="text-xs text-faint">
         Canonical bridge on {network.label}. Your SOL is locked in Base&apos;s own
         vault and minted as an ERC-20 — no liquidity pool, no market maker spread.
       </p>
@@ -141,8 +142,8 @@ function shorten(value: string) {
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between">
-      <dt className="text-neutral-500">{label}</dt>
-      <dd className="text-neutral-300">{children}</dd>
+      <dt className="text-muted">{label}</dt>
+      <dd className="text-ink">{children}</dd>
     </div>
   )
 }

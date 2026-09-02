@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { address as toAddress } from '@solana/kit'
-import { ACTIVE_NETWORK } from '@/lib/solana/networks'
+import { useNetwork } from '@/app/settings-provider'
 import { rpc } from '@/lib/solana/rpc'
 
 /**
@@ -12,13 +12,14 @@ import { rpc } from '@/lib/solana/rpc'
  * a tela mostraria saldo velho logo depois de uma transferencia bem sucedida.
  */
 export function useSolanaBalance(walletAddress: string | undefined) {
+  const network = useNetwork()
   return useQuery({
-    queryKey: ['solana-balance', ACTIVE_NETWORK, walletAddress],
+    queryKey: ['solana-balance', network.name, walletAddress],
     enabled: Boolean(walletAddress),
     staleTime: 15_000,
     refetchInterval: 30_000,
     queryFn: async () => {
-      const result = await rpc().getBalance(toAddress(walletAddress!)).send()
+      const result = await rpc(network).getBalance(toAddress(walletAddress!)).send()
       return result.value
     },
   })
