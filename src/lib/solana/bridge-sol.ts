@@ -9,11 +9,16 @@ import {
   type TransactionSendingSigner,
 } from '@solana/kit'
 import { hexToBytes } from 'viem'
-import { Bridge } from '@/lib/base-bridge'
+import { BaseRelayer, Bridge } from '@/lib/base-bridge'
 import type { BridgeState } from './bridge-state'
-import { SYSTEM_PROGRAM } from './constants'
+import { RELAY_GAS_LIMIT, SYSTEM_PROGRAM } from './constants'
 import { network } from './networks'
-import { outgoingMessagePda, solVaultPda } from './pda'
+import {
+  messageToRelayPda,
+  outgoingMessagePda,
+  relayerCfgPda,
+  solVaultPda,
+} from './pda'
 import { rpc } from './rpc'
 
 /**
@@ -54,10 +59,11 @@ export async function sendBridgeSol({
     throw new Error(`The bridge is paused on ${network.label}.`)
   }
 
-  const [solVault, { salt, pda: outgoingMessage }, { value: latestBlockhash }] =
+  const [solVault, { salt, pda: outgoingMessage }, cfg, { value: latestBlockhash }] =
     await Promise.all([
       solVaultPda(),
       outgoingMessagePda(),
+      relayerCfgPda(),
       rpc().getLatestBlockhash().send(),
     ])
 
@@ -81,11 +87,42 @@ export async function sendBridgeSol({
     { programAddress: network.solana.bridgeProgram },
   )
 
+  /**
+   * Segunda instrucao, e ela NAO e opcional na pratica.
+   *
+   * O `bridge_sol` sozinho tranca o SOL no vault e cria a conta OutgoingMessage — e
+   * para por ai. Sem `pay_for_relay`, ninguem paga o gas da Base e a mensagem nunca
+   * atravessa: os fundos ficam presos do lado da Solana com uma transferencia pela
+   * metade. A documentacao chama o relayer de "opcional" porque o usuario pode
+   * relayar por conta propria na Base, o que exige ETH la e mais duas etapas. Para o
+   * fluxo de uma assinatura so, pagar o relay e obrigatorio.
+   */
+  const cfgAccount = await BaseRelayer.fetchCfg(
+    rpc() as Parameters<typeof BaseRelayer.fetchCfg>[0],
+    cfg,
+  )
+  const { salt: mtrSalt, pda: messageToRelay } = await messageToRelayPda()
+
+  const payForRelay = BaseRelayer.getPayForRelayInstruction(
+    {
+      payer: signer,
+      cfg,
+      gasFeeReceiver: cfgAccount.data.gasConfig.gasFeeReceiver,
+      messageToRelay,
+      systemProgram: SYSTEM_PROGRAM,
+      mtrSalt,
+      outgoingMessage,
+      gasLimit: RELAY_GAS_LIMIT,
+    },
+    { programAddress: network.solana.baseRelayerProgram },
+  )
+
   const message = pipe(
     createTransactionMessage({ version: 0 }),
     (m) => setTransactionMessageFeePayerSigner(signer, m),
     (m) => setTransactionMessageLifetimeUsingBlockhash(latestBlockhash, m),
     (m) => appendTransactionMessageInstruction(instruction, m),
+    (m) => appendTransactionMessageInstruction(payForRelay, m),
   )
 
   const signatureBytes = await signAndSendTransactionMessageWithSigners(message)

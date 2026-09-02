@@ -38,3 +38,17 @@ export const SEEDS = {
   /** WRAPPED_TOKEN_SEED */
   wrappedToken: 'wrapped_token',
 } as const
+
+/**
+ * Seeds do programa Base Relayer, extraidos do idl.json de base_relayer.
+ * Sao de um programa diferente do bridge, por isso ficam separados.
+ */
+export const RELAYER_SEEDS = {
+  /** CFG_SEED */
+  cfg: 'config',
+  /** MTR_SEED — "message to relay" */
+  messageToRelay: 'mtr',
+} as const
+
+/** Teto de gas na Base pra execucao da mensagem. Mesmo valor dos scripts oficiais. */
+export const RELAY_GAS_LIMIT = 2_000_000n

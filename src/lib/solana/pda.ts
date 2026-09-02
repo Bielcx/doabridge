@@ -1,5 +1,5 @@
 import { getProgramDerivedAddress, type Address } from '@solana/kit'
-import { SEEDS } from './constants'
+import { RELAYER_SEEDS, SEEDS } from './constants'
 import { network } from './networks'
 
 /**
@@ -65,4 +65,30 @@ export async function tokenVaultPda(
     seeds: [utf8(SEEDS.tokenVault), mint, remoteToken],
   })
   return pda
+}
+
+/** Conta de configuracao do Base Relayer. */
+export async function relayerCfgPda(
+  program: Address = network.solana.baseRelayerProgram,
+): Promise<Address> {
+  const [pda] = await getProgramDerivedAddress({
+    programAddress: program,
+    seeds: [utf8(RELAYER_SEEDS.cfg)],
+  })
+  return pda
+}
+
+/**
+ * Conta "message to relay", criada a cada pedido de relay. Como a outgoingMessage,
+ * usa um salt aleatorio pra ser unica por transferencia.
+ */
+export async function messageToRelayPda(
+  salt: Uint8Array = crypto.getRandomValues(new Uint8Array(32)),
+  program: Address = network.solana.baseRelayerProgram,
+): Promise<{ salt: Uint8Array; pda: Address }> {
+  const [pda] = await getProgramDerivedAddress({
+    programAddress: program,
+    seeds: [utf8(RELAYER_SEEDS.messageToRelay), salt],
+  })
+  return { salt, pda }
 }
