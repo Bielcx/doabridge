@@ -9,6 +9,7 @@ import {
   assetById,
   assetsOn,
   CHAINS,
+  requiredDestination,
   routeSupport,
   type Asset,
   type ChainKey,
@@ -26,7 +27,13 @@ export function BridgeForm() {
   /** Ao trocar um lado, conserta o outro se o par deixar de existir. */
   function pickFrom(asset: Asset) {
     setFrom(asset)
-    if (!routeSupport(asset.chain, to.chain).available) {
+
+    // Alguns motores nao deixam escolher o outro lado. O canonico so mina SOL
+    // embrulhado na Base, entao o destino e consequencia, nao opcao.
+    const forced = requiredDestination(asset)
+    if (forced) {
+      setTo(forced)
+    } else if (!routeSupport(asset.chain, to.chain).available) {
       const fallback = firstReachableFrom(asset.chain)
       if (fallback) setTo(fallback)
     }
@@ -57,6 +64,7 @@ export function BridgeForm() {
               ? { chain: to.chain, side: 'destination' }
               : { chain: from.chain, side: 'origin' }
           }
+          originAsset={picking === 'to' ? from : undefined}
           onPick={picking === 'from' ? pickFrom : pickTo}
           onCancel={() => setPicking(null)}
         />

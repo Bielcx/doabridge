@@ -6,6 +6,7 @@ import {
   assetsOn,
   CHAIN_LIST,
   CHAINS,
+  destinationAssets,
   routeSupport,
   type Asset,
   type ChainKey,
@@ -27,12 +28,15 @@ export function ChainTokenPicker({
   selected,
   /** Quando presente, restringe as redes ao que se atravessa a partir desta. */
   pairedWith,
+  originAsset,
   onPick,
   onCancel,
 }: {
   title: string
   selected: Asset
   pairedWith?: { chain: ChainKey; side: 'origin' | 'destination' }
+  /** Origem escolhida, quando este painel esta escolhendo o destino. */
+  originAsset?: Asset
   onPick: (asset: Asset) => void
   onCancel: () => void
 }) {
@@ -94,8 +98,15 @@ export function ChainTokenPicker({
         </p>
       )}
 
+      {originAsset && blocked.enabled && destinationAssets(originAsset, chain).length === 0 && (
+        <p className="mb-3 rounded-xl border border-line px-3 py-2 text-xs text-muted">
+          The canonical bridge only mints wrapped SOL on Base, so the asset on the
+          other side is fixed.
+        </p>
+      )}
+
       <ul className="space-y-1">
-        {assetsOn(chain).map((asset) => (
+        {(originAsset ? destinationAssets(originAsset, chain) : assetsOn(chain)).map((asset) => (
           <li key={asset.id}>
             <button
               type="button"

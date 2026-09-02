@@ -3,7 +3,8 @@
 import { useQuery } from '@tanstack/react-query'
 import { parseUnits } from 'viem'
 import { fetchRoutes } from '@/lib/lifi'
-import { CHAINS, type Asset } from '@/lib/routes'
+import { useNetwork } from '@/app/settings-provider'
+import { CHAINS, evmAddressOf, type Asset } from '@/lib/routes'
 
 type Args = {
   from: Asset
@@ -14,6 +15,9 @@ type Args = {
 }
 
 export function useBridgeRoutes({ from, to, amount, address }: Args) {
+  const network = useNetwork()
+  const fromToken = evmAddressOf(from, network)
+  const toToken = evmAddressOf(to, network)
   const fromChainId = CHAINS[from.chain].evmChainId
   const toChainId = CHAINS[to.chain].evmChainId
   const parsed = safeParse(amount, from.decimals)
@@ -24,10 +28,12 @@ export function useBridgeRoutes({ from, to, amount, address }: Args) {
     parsed > 0n &&
     fromChainId !== undefined &&
     toChainId !== undefined &&
-    fromChainId !== toChainId
+    fromChainId !== toChainId &&
+    fromToken !== undefined &&
+    toToken !== undefined
 
   return useQuery({
-    queryKey: ['routes', from.id, to.id, parsed?.toString(), address],
+    queryKey: ['routes', network.name, from.id, to.id, parsed?.toString(), address],
     enabled,
     // Cotacao envelhece rapido; nao vale reusar cache velho numa tela de bridge.
     staleTime: 15_000,
@@ -37,8 +43,8 @@ export function useBridgeRoutes({ from, to, amount, address }: Args) {
       fetchRoutes({
         fromChainId: fromChainId!,
         toChainId: toChainId!,
-        fromTokenAddress: from.evmAddress!,
-        toTokenAddress: to.evmAddress!,
+        fromTokenAddress: fromToken!,
+        toTokenAddress: toToken!,
         fromAmount: parsed!.toString(),
         fromAddress: address!,
       }),

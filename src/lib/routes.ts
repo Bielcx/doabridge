@@ -57,6 +57,8 @@ export type Asset = {
   decimals: number
   /** Endereco na EVM. NATIVE_EVM representa o ativo nativo da rede. */
   evmAddress?: `0x${string}`
+  /** Para ativos cujo endereco depende da rede ativa. */
+  fromNetwork?: 'solErc20'
 }
 
 /**
@@ -102,6 +104,16 @@ export const ASSETS: Asset[] = [
     symbol: 'SOL',
     name: 'Solana',
     decimals: 9,
+  },
+  {
+    // SOL embrulhado na Base. O endereco muda entre mainnet e Sepolia, entao sai da
+    // config de rede em vez de ficar fixo aqui — ver `solErc20` em networks.ts.
+    id: 'base:SOL',
+    chain: 'base',
+    symbol: 'SOL',
+    name: 'Solana',
+    decimals: 9,
+    fromNetwork: 'solErc20',
   },
 ]
 
@@ -165,4 +177,33 @@ export function destinationsFrom(from: ChainKey) {
     chain,
     support: routeSupport(from, chain.key),
   }))
+}
+
+/**
+ * Destino OBRIGATORIO para uma origem, quando o motor nao deixa escolher.
+ *
+ * O bridge canonico so faz uma coisa: tranca SOL na Solana e mina SOL embrulhado na
+ * Base. Nao existe escolha de ativo do outro lado. Sem esta trava o usuario poderia
+ * pedir SOL -> USDC, assinar, e receber outra coisa — a interface teria prometido o
+ * que o programa nao entrega.
+ */
+export function requiredDestination(from: Asset): Asset | null {
+  if (from.id === 'solana:SOL') return assetById('base:SOL')
+  return null
+}
+
+/** Ativos oferecidos como destino, dada a origem. */
+export function destinationAssets(from: Asset, chain: ChainKey): Asset[] {
+  const forced = requiredDestination(from)
+  if (forced) return forced.chain === chain ? [forced] : []
+  return assetsOn(chain)
+}
+
+/** Endereco na EVM, resolvido contra a rede ativa quando necessario. */
+export function evmAddressOf(
+  asset: Asset,
+  network: { base: { solErc20: `0x${string}` } },
+): `0x${string}` | undefined {
+  if (asset.fromNetwork === 'solErc20') return network.base.solErc20
+  return asset.evmAddress
 }
