@@ -15,9 +15,10 @@ import { resolveTheme } from '@/lib/theme'
  * A cor inverte com o tema. Branco sobre o fundo claro seria invisivel, entao
  * o tema claro usa tinta escura — mesma ideia, contraste ao contrario.
  *
- * Fica atras de tudo e nao captura clique. Consequencia: a interacao com o
- * cursor so acontece nas areas vazias da pagina, nao em cima do card. Aceitavel
- * — um fundo que rouba clique do formulario seria um bug, nao um efeito.
+ * Fica atras de tudo e nao captura clique. Como uma camada com
+ * `pointer-events: none` nao recebe evento nenhum, o componente escuta o
+ * ponteiro na janela (`pointerSource="window"`) em vez de no proprio container
+ * — senao o efeito de seguir o cursor simplesmente nunca dispara.
  */
 export function AppBackground() {
   const { theme } = useSettings()
@@ -64,6 +65,7 @@ export function AppBackground() {
         speed={100}
         strength={13}
         followPointer
+        pointerSource="window"
       />
     </div>
   )

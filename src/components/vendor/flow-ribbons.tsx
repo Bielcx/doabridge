@@ -10,7 +10,13 @@
 //   1. O preset vinha com colorA e colorB como string vazia, que nao aciona o
 //      default do componente e cai no fallback de cinza. Removidos do preset pra
 //      que as cores venham por prop.
-//   2. Nada mais. Nao editar o resto — se atualizar, recopiar do Originkit.
+//   2. Adicionada a prop `pointerSource`. O original escuta o ponteiro no
+//      proprio container, o que nao funciona quando o componente e um fundo
+//      com `pointer-events: none` — nesse caso ele nao recebe evento nenhum e
+//      o followPointer fica inerte. Com "window" ele escuta na janela e
+//      converte a posicao para as coordenadas do container. O padrao continua
+//      sendo "element", o comportamento original.
+//   3. Nada mais. Nao editar o resto — se atualizar, recopiar do Originkit.
 "use client"
 import * as React from "react"
 import { useEffect, useRef } from "react"
@@ -25,7 +31,9 @@ const DEFAULTS = {
     speed: 20,
     followPointer: true,
     strength: 20,
+    pointerSource: "element" as PointerSource,
 }
+type PointerSource = "element" | "window"
 type Config = {
     colorA: string
     colorB: string
@@ -36,6 +44,7 @@ type Config = {
     speed: number
     followPointer: boolean
     strength: number
+    pointerSource: PointerSource
 }
 function clamp(v: number, lo: number, hi: number, fallback: number): number {
     const n = typeof v === "number" && isFinite(v) ? v : fallback
@@ -134,10 +143,17 @@ class FlowScene {
         const ctx = this.canvas.getContext("2d")
         if (!ctx) throw new Error("no 2d context")
         this.ctx = ctx
-        container.addEventListener("pointerenter", this.onEnter)
-        container.addEventListener("pointerleave", this.onLeave)
-        container.addEventListener("pointercancel", this.onLeave)
-        container.addEventListener("pointermove", this.onMove)
+        if (cfg.pointerSource === "window") {
+            // O ponteiro nunca "entra" numa camada que nao recebe eventos, entao
+            // o primeiro movimento e que liga o efeito, e sair da janela desliga.
+            window.addEventListener("pointermove", this.onMove, { passive: true })
+            document.documentElement.addEventListener("pointerleave", this.onLeave)
+        } else {
+            container.addEventListener("pointerenter", this.onEnter)
+            container.addEventListener("pointerleave", this.onLeave)
+            container.addEventListener("pointercancel", this.onLeave)
+            container.addEventListener("pointermove", this.onMove)
+        }
     }
     private onEnter = () => {
         this.gripTarget = 1
@@ -154,6 +170,7 @@ class FlowScene {
             this.px = this.tx
             this.py = this.ty
         }
+        if (this.cfg.pointerSource === "window") this.gripTarget = 1
     }
     private spawn(m: Mote) {
         m.x = Math.random() * this.width
@@ -291,6 +308,8 @@ class FlowScene {
     dispose() {
         this.disposed = true
         cancelAnimationFrame(this.frameId)
+        window.removeEventListener("pointermove", this.onMove)
+        document.documentElement.removeEventListener("pointerleave", this.onLeave)
         this.container.removeEventListener("pointerenter", this.onEnter)
         this.container.removeEventListener("pointerleave", this.onLeave)
         this.container.removeEventListener("pointercancel", this.onLeave)
@@ -310,6 +329,7 @@ interface FlowRibbonsProps {
     speed?: number
     followPointer?: boolean
     strength?: number
+    pointerSource?: PointerSource
     style?: React.CSSProperties
 }
 function __OriginkitBase_FlowRibbons(props: FlowRibbonsProps) {
@@ -323,6 +343,7 @@ function __OriginkitBase_FlowRibbons(props: FlowRibbonsProps) {
         speed = DEFAULTS.speed,
         followPointer = DEFAULTS.followPointer,
         strength = DEFAULTS.strength,
+        pointerSource = DEFAULTS.pointerSource,
         style,
     } = props
     const containerRef = useRef<HTMLDivElement | null>(null)
@@ -338,6 +359,7 @@ function __OriginkitBase_FlowRibbons(props: FlowRibbonsProps) {
         speed,
         followPointer,
         strength,
+        pointerSource,
     }
     useEffect(() => {
         const container = containerRef.current
@@ -373,6 +395,7 @@ function __OriginkitBase_FlowRibbons(props: FlowRibbonsProps) {
         speed,
         followPointer,
         strength,
+        pointerSource,
     ])
     return (
         <div
