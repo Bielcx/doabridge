@@ -1,5 +1,6 @@
 import { getProgramDerivedAddress, type Address } from '@solana/kit'
-import { SEEDS, SOLANA_BRIDGE_PROGRAM } from './constants'
+import { SEEDS } from './constants'
+import { network } from './networks'
 
 /**
  * Derivacao das PDAs do programa de bridge da Solana.
@@ -16,7 +17,7 @@ const utf8 = (value: string) => new TextEncoder().encode(value)
 
 /** Conta de estado do bridge: nonce e parametros de taxa. */
 export async function bridgePda(
-  program: Address = SOLANA_BRIDGE_PROGRAM,
+  program: Address = network.solana.bridgeProgram,
 ): Promise<Address> {
   const [pda] = await getProgramDerivedAddress({
     programAddress: program,
@@ -27,7 +28,7 @@ export async function bridgePda(
 
 /** Cofre que trava o SOL nativo enquanto ele existe como ERC-20 na Base. */
 export async function solVaultPda(
-  program: Address = SOLANA_BRIDGE_PROGRAM,
+  program: Address = network.solana.bridgeProgram,
 ): Promise<Address> {
   const [pda] = await getProgramDerivedAddress({
     programAddress: program,
@@ -44,7 +45,7 @@ export async function solVaultPda(
  */
 export async function outgoingMessagePda(
   salt: Uint8Array = crypto.getRandomValues(new Uint8Array(32)),
-  program: Address = SOLANA_BRIDGE_PROGRAM,
+  program: Address = network.solana.bridgeProgram,
 ): Promise<{ salt: Uint8Array; pda: Address }> {
   const [pda] = await getProgramDerivedAddress({
     programAddress: program,
@@ -57,7 +58,7 @@ export async function outgoingMessagePda(
 export async function tokenVaultPda(
   mint: Address,
   remoteToken: Uint8Array,
-  program: Address = SOLANA_BRIDGE_PROGRAM,
+  program: Address = network.solana.bridgeProgram,
 ): Promise<Address> {
   const [pda] = await getProgramDerivedAddress({
     programAddress: program,

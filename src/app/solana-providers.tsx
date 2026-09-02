@@ -3,7 +3,7 @@
 import { SelectedWalletAccountContextProvider } from '@solana/react'
 import { getWalletFeature, useWallets, type UiWallet } from '@wallet-standard/react'
 import { useEffect, useRef, type ReactNode } from 'react'
-import { SELECTED_ACCOUNT_STORAGE_KEY, SOLANA_CHAIN } from '@/lib/solana/chain'
+import { SELECTED_ACCOUNT_STORAGE_KEY, network } from '@/lib/solana/networks'
 
 /**
  * FRONTEIRA DE ISOLAMENTO — lado Solana.
@@ -19,7 +19,7 @@ import { SELECTED_ACCOUNT_STORAGE_KEY, SOLANA_CHAIN } from '@/lib/solana/chain'
 
 /** So carteiras que declaram suporte a rede que o app usa aparecem na lista. */
 function supportsChain(wallet: UiWallet) {
-  return wallet.chains.includes(SOLANA_CHAIN)
+  return wallet.chains.includes(network.solana.chain)
 }
 
 /**
