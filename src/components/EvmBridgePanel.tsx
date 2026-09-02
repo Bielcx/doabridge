@@ -3,6 +3,8 @@
 import { useMemo, useState } from 'react'
 import { formatUnits } from 'viem'
 import { useAccount } from 'wagmi'
+import { useConnectModal } from '@rainbow-me/rainbowkit'
+import { EvmWalletSlot } from '@/components/EvmWalletSlot'
 import { useBridgeExecution } from '@/hooks/useBridgeExecution'
 import { useBridgeRoutes } from '@/hooks/useBridgeRoutes'
 import { TOKENS, tokenBySymbol } from '@/lib/tokens'
@@ -22,6 +24,7 @@ export function EvmBridgePanel({
   toChainId: number
 }) {
   const { address, isConnected } = useAccount()
+  const { openConnectModal } = useConnectModal()
   const [symbol, setSymbol] = useState('ETH')
   const [amount, setAmount] = useState('')
 
@@ -33,6 +36,10 @@ export function EvmBridgePanel({
 
   return (
     <div className="space-y-4">
+      <div className="rounded-xl border border-line bg-sunken px-3 py-1">
+        <EvmWalletSlot label="Wallet" />
+      </div>
+
       <div className="space-y-2">
         <label className="block text-sm text-muted" htmlFor="evm-amount">
           Amount
@@ -71,8 +78,8 @@ export function EvmBridgePanel({
 
       <button
         type="button"
-        disabled={!isConnected || !best || running}
-        onClick={() => best && execute(best)}
+        disabled={isConnected && (!best || running)}
+        onClick={() => (isConnected ? best && execute(best) : openConnectModal?.())}
         className="w-full rounded-xl bg-accent px-4 py-3 font-medium transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-sunken disabled:text-faint"
       >
         {!isConnected ? 'Connect wallet' : running ? 'Bridging...' : 'Do a bridge'}

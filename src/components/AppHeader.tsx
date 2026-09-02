@@ -1,9 +1,8 @@
 'use client'
 
 import { useNetwork } from '@/app/settings-provider'
-import { ConnectSolanaWallet } from '@/components/ConnectSolanaWallet'
-import { ConnectWallet } from '@/components/ConnectWallet'
 import { SettingsPanel } from '@/components/SettingsPanel'
+import { WalletsIndicator } from '@/components/WalletsIndicator'
 
 export function AppHeader() {
   const network = useNetwork()
@@ -24,8 +23,7 @@ export function AppHeader() {
       </div>
 
       <div className="flex items-center gap-2">
-        <ConnectSolanaWallet />
-        <ConnectWallet />
+        <WalletsIndicator />
         <SettingsPanel />
       </div>
     </header>

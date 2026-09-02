@@ -2,7 +2,9 @@
 
 import { useMemo, useState } from 'react'
 import { useAccount } from 'wagmi'
+import { EvmWalletSlot } from '@/components/EvmWalletSlot'
 import { SolanaBridgeButton } from '@/components/SolanaBridgeButton'
+import { SolanaWalletSlot } from '@/components/SolanaWalletSlot'
 import { useSolanaAccount } from '@/hooks/useSolanaAccount'
 import { useSolanaBalance } from '@/hooks/useSolanaBalance'
 import { useSolanaBridgeState } from '@/hooks/useSolanaBridgeState'
@@ -86,13 +88,12 @@ export function SolanaBridgePanel() {
         </div>
       </div>
 
+      <div className="rounded-xl border border-line bg-sunken px-3 py-1">
+        <SolanaWalletSlot label="Paying from" />
+        <EvmWalletSlot label="Receiving on Base" />
+      </div>
+
       <dl className="space-y-1 text-xs">
-        <Row label="Paying from">
-          {solanaAccount ? shorten(solanaAccount.address) : 'Solana wallet not connected'}
-        </Row>
-        <Row label="Receiving on Base">
-          {evmAddress ? shorten(evmAddress) : 'Ethereum wallet not connected'}
-        </Row>
         <Row label="Bridge fee">
           {bridgeState ? `~${formatSol(bridgeState.fees.bridgeLamports)} SOL` : '—'}
         </Row>
@@ -135,9 +136,6 @@ export function SolanaBridgePanel() {
   )
 }
 
-function shorten(value: string) {
-  return `${value.slice(0, 6)}...${value.slice(-4)}`
-}
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
