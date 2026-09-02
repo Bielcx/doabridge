@@ -11,6 +11,7 @@ import { useSolanaBridgeState } from '@/hooks/useSolanaBridgeState'
 import { RENT_BUFFER_LAMPORTS } from '@/lib/solana/constants'
 import { formatSol, toLamports } from '@/lib/solana/format'
 import { useNetwork } from '@/app/settings-provider'
+import type { Asset } from '@/lib/routes'
 
 /**
  * Solana -> Base pelo bridge canonico da Base.
@@ -19,7 +20,7 @@ import { useNetwork } from '@/app/settings-provider'
  * da pra abstrair isso num botao so — sao dois enderecos em duas redes, e esconder
  * um deles seria esconder pra onde o dinheiro vai.
  */
-export function SolanaBridgePanel() {
+export function SolanaBridgePanel({ to }: { to: Asset }) {
   const network = useNetwork()
   const solanaAccount = useSolanaAccount()
   const { address: evmAddress } = useAccount()

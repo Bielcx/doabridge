@@ -1,60 +1,137 @@
 'use client'
 
 import { useState } from 'react'
-import { base, mainnet } from 'wagmi/chains'
+import { AssetIcon } from '@/components/AssetIcon'
+import { ChainTokenPicker } from '@/components/ChainTokenPicker'
 import { EvmBridgePanel } from '@/components/EvmBridgePanel'
 import { SolanaBridgePanel } from '@/components/SolanaBridgePanel'
+import {
+  assetById,
+  assetsOn,
+  CHAINS,
+  routeSupport,
+  type Asset,
+  type ChainKey,
+} from '@/lib/routes'
 
-/**
- * Rotas suportadas, explicitas.
- *
- * Base -> Solana esta ausente de proposito: aquela direcao exige ~15 minutos de espera
- * mais duas assinaturas de prova na Solana, e merece um fluxo proprio com estado
- * persistido. Oferecer o par sem isso pronto seria prender fundos do usuario.
- */
-const ROUTES = [
-  { id: 'eth-base', label: 'Ethereum', to: 'Base', engine: 'evm', from: mainnet.id, dest: base.id },
-  { id: 'base-eth', label: 'Base', to: 'Ethereum', engine: 'evm', from: base.id, dest: mainnet.id },
-  { id: 'sol-base', label: 'Solana', to: 'Base', engine: 'solana' },
-] as const
-
-type RouteId = (typeof ROUTES)[number]['id']
+type Picking = 'from' | 'to' | null
 
 export function BridgeForm() {
-  const [routeId, setRouteId] = useState<RouteId>('eth-base')
-  const route = ROUTES.find((r) => r.id === routeId)!
+  const [from, setFrom] = useState<Asset>(() => assetById('ethereum:ETH'))
+  const [to, setTo] = useState<Asset>(() => assetById('base:ETH'))
+  const [picking, setPicking] = useState<Picking>(null)
+
+  const support = routeSupport(from.chain, to.chain)
+
+  /** Ao trocar um lado, conserta o outro se o par deixar de existir. */
+  function pickFrom(asset: Asset) {
+    setFrom(asset)
+    if (!routeSupport(asset.chain, to.chain).available) {
+      const fallback = firstReachableFrom(asset.chain)
+      if (fallback) setTo(fallback)
+    }
+    setPicking(null)
+  }
+
+  function pickTo(asset: Asset) {
+    setTo(asset)
+    setPicking(null)
+  }
+
+  function invert() {
+    if (!routeSupport(to.chain, from.chain).available) return
+    setFrom(to)
+    setTo(from)
+  }
+
+  const canInvert = routeSupport(to.chain, from.chain).available
 
   return (
-    <div className="w-full max-w-md space-y-4 rounded-2xl border border-line bg-surface p-5">
-      <span className="text-sm text-muted">Transfer</span>
-
-      <div className="grid grid-cols-2 gap-3">
-        <label className="rounded-xl border border-line bg-sunken px-3 py-2">
-          <span className="block text-xs uppercase tracking-wide text-muted">from</span>
-          <select
-            value={routeId}
-            onChange={(e) => setRouteId(e.target.value as RouteId)}
-            className="w-full bg-transparent text-base outline-none"
-          >
-            {ROUTES.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <div className="rounded-xl border border-line bg-sunken px-3 py-2">
-          <span className="block text-xs uppercase tracking-wide text-muted">to</span>
-          <span className="block py-0.5 text-base">{route.to}</span>
-        </div>
-      </div>
-
-      {route.engine === 'evm' ? (
-        <EvmBridgePanel fromChainId={route.from} toChainId={route.dest} />
+    <div className="w-full max-w-md rounded-2xl border border-line bg-surface p-5">
+      {picking ? (
+        <ChainTokenPicker
+          title={picking === 'from' ? 'Send from' : 'Send to'}
+          selected={picking === 'from' ? from : to}
+          pairedWith={
+            picking === 'from'
+              ? { chain: to.chain, side: 'destination' }
+              : { chain: from.chain, side: 'origin' }
+          }
+          onPick={picking === 'from' ? pickFrom : pickTo}
+          onCancel={() => setPicking(null)}
+        />
       ) : (
-        <SolanaBridgePanel />
+        <div className="space-y-4">
+          <span className="text-sm text-muted">Transfer</span>
+
+          <div className="relative rounded-xl border border-line bg-sunken">
+            <AssetRow label="From" asset={from} onClick={() => setPicking('from')} />
+            <div className="mx-3 border-t border-line" />
+            <AssetRow label="To" asset={to} onClick={() => setPicking('to')} />
+
+            <button
+              type="button"
+              onClick={invert}
+              disabled={!canInvert}
+              aria-label="Swap direction"
+              title={canInvert ? 'Swap direction' : 'That direction is not supported yet'}
+              className="absolute right-4 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-line bg-surface text-muted transition hover:border-accent hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              ↓
+            </button>
+          </div>
+
+          {support.available ? (
+            support.engine === 'lifi' ? (
+              <EvmBridgePanel from={from} to={to} />
+            ) : (
+              <SolanaBridgePanel to={to} />
+            )
+          ) : (
+            <p className="rounded-xl border border-warn/40 bg-warn-bg px-3 py-3 text-sm text-warn">
+              {support.reason}
+            </p>
+          )}
+        </div>
       )}
     </div>
   )
+}
+
+function AssetRow({
+  label,
+  asset,
+  onClick,
+}: {
+  label: string
+  asset: Asset
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition hover:bg-surface"
+    >
+      <AssetIcon asset={asset} />
+      <span className="flex-1">
+        <span className="block text-xs uppercase tracking-wide text-muted">{label}</span>
+        <span className="block text-base font-medium">{CHAINS[asset.chain].name}</span>
+      </span>
+      <span className="mr-10 rounded-lg border border-line px-2 py-1 text-xs text-muted">
+        {asset.symbol}
+      </span>
+    </button>
+  )
+}
+
+function firstReachableFrom(chain: ChainKey): Asset | null {
+  for (const candidate of ['base', 'ethereum', 'solana'] as ChainKey[]) {
+    if (candidate === chain) continue
+    if (routeSupport(chain, candidate).available) {
+      const [asset] = assetsOn(candidate)
+      if (asset) return asset
+    }
+  }
+  return null
 }

@@ -1,13 +1,13 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { formatUnits } from 'viem'
 import { useAccount } from 'wagmi'
 import { useConnectModal } from '@rainbow-me/rainbowkit'
 import { EvmWalletSlot } from '@/components/EvmWalletSlot'
 import { useBridgeExecution } from '@/hooks/useBridgeExecution'
 import { useBridgeRoutes } from '@/hooks/useBridgeRoutes'
-import { TOKENS, tokenBySymbol } from '@/lib/tokens'
+import type { Asset } from '@/lib/routes'
 
 /**
  * Ethereum <-> Base via LI.FI.
@@ -16,20 +16,12 @@ import { TOKENS, tokenBySymbol } from '@/lib/tokens'
  * como auditar um frontend desconhecido chamando L1StandardBridge na mao, e o LI.FI e
  * o mesmo motor que Brid.gg e Superbridge usam.
  */
-export function EvmBridgePanel({
-  fromChainId,
-  toChainId,
-}: {
-  fromChainId: number
-  toChainId: number
-}) {
+export function EvmBridgePanel({ from, to }: { from: Asset; to: Asset }) {
   const { address, isConnected } = useAccount()
   const { openConnectModal } = useConnectModal()
-  const [symbol, setSymbol] = useState('ETH')
   const [amount, setAmount] = useState('')
 
-  const token = useMemo(() => tokenBySymbol(symbol), [symbol])
-  const routes = useBridgeRoutes({ fromChainId, toChainId, token, amount, address })
+  const routes = useBridgeRoutes({ from, to, amount, address })
   const best = routes.data?.[0]
   const { state, execute } = useBridgeExecution()
   const running = state.status === 'running'
@@ -53,18 +45,9 @@ export function EvmBridgePanel({
             onChange={(e) => setAmount(e.target.value)}
             className="w-full rounded-xl border border-line bg-sunken px-3 py-2 text-lg outline-none focus:border-accent"
           />
-          <select
-            value={symbol}
-            onChange={(e) => setSymbol(e.target.value)}
-            className="rounded-xl border border-line bg-sunken px-3 py-2 text-sm"
-            aria-label="Token"
-          >
-            {TOKENS.map((t) => (
-              <option key={t.symbol} value={t.symbol}>
-                {t.symbol}
-              </option>
-            ))}
-          </select>
+          <span className="flex items-center rounded-xl border border-line bg-sunken px-3 text-sm text-muted">
+            {from.symbol}
+          </span>
         </div>
       </div>
 
@@ -72,7 +55,7 @@ export function EvmBridgePanel({
         loading={routes.isFetching}
         error={routes.error instanceof Error ? routes.error.message : null}
         receive={
-          best ? `${formatUnits(BigInt(best.toAmount), token.decimals)} ${token.symbol}` : null
+          best ? `${formatUnits(BigInt(best.toAmount), to.decimals)} ${to.symbol}` : null
         }
       />
 
