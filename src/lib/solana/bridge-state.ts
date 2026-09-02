@@ -1,7 +1,8 @@
-import { createSolanaRpc, type Address } from '@solana/kit'
+import type { Address } from '@solana/kit'
 import { Bridge } from '@/lib/base-bridge'
 import { bridgePda } from './pda'
-import { SOLANA_RPC_URL, network } from './networks'
+import { network } from './networks'
+import { rpc } from './rpc'
 
 /**
  * Leitura do estado on-chain da conta Bridge.
@@ -33,13 +34,6 @@ export type BridgeState = {
    * depois, se o numero comecar a divergir de forma incomoda.
    */
   estimatedGasFeeLamports: bigint
-}
-
-let rpcClient: ReturnType<typeof createSolanaRpc> | null = null
-
-function rpc() {
-  rpcClient ??= createSolanaRpc(SOLANA_RPC_URL)
-  return rpcClient
 }
 
 /**
