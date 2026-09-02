@@ -1,6 +1,7 @@
 import { BridgeForm } from '@/components/BridgeForm'
 import { ConnectSolanaWallet } from '@/components/ConnectSolanaWallet'
 import { ConnectWallet } from '@/components/ConnectWallet'
+import { SolanaBridgeStatus } from '@/components/SolanaBridgeStatus'
 import { isMainnet, network } from '@/lib/solana/networks'
 
 export default function Home() {
@@ -24,8 +25,9 @@ export default function Home() {
         </div>
       </header>
 
-      <div className="flex flex-1 items-start justify-center">
+      <div className="flex flex-1 flex-col items-center gap-3">
         <BridgeForm />
+        <SolanaBridgeStatus />
       </div>
     </main>
   )
