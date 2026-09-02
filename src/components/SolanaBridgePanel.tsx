@@ -4,7 +4,9 @@ import { useMemo, useState } from 'react'
 import { useAccount } from 'wagmi'
 import { SolanaBridgeButton } from '@/components/SolanaBridgeButton'
 import { useSolanaAccount } from '@/hooks/useSolanaAccount'
+import { useSolanaBalance } from '@/hooks/useSolanaBalance'
 import { useSolanaBridgeState } from '@/hooks/useSolanaBridgeState'
+import { RENT_BUFFER_LAMPORTS } from '@/lib/solana/constants'
 import { formatSol, toLamports } from '@/lib/solana/format'
 import { network } from '@/lib/solana/networks'
 
@@ -19,16 +21,55 @@ export function SolanaBridgePanel() {
   const solanaAccount = useSolanaAccount()
   const { address: evmAddress } = useAccount()
   const { data: bridgeState } = useSolanaBridgeState()
+  const { data: balance } = useSolanaBalance(solanaAccount?.address)
   const [amount, setAmount] = useState('')
 
   const amountLamports = useMemo(() => toLamports(amount), [amount])
+  const fees = bridgeState?.fees.totalLamports ?? 0n
+
+  /**
+   * O maximo transferivel nao e o saldo: precisa sobrar pras duas taxas e pra folga
+   * de aluguel da conta. Calcular isso pro usuario evita a tentativa fadada ao erro
+   * de digitar o saldo inteiro.
+   */
+  const maxLamports = useMemo(() => {
+    if (balance === undefined || !bridgeState) return null
+    const available = balance - fees - RENT_BUFFER_LAMPORTS
+    return available > 0n ? available : 0n
+  }, [balance, bridgeState, fees])
+
+  /**
+   * Validacao antes de assinar. Sem isso o usuario paga gas numa transacao que a
+   * rede vai recusar, e recebe um erro de RPC que nao explica nada.
+   */
+  const shortfall =
+    amountLamports !== null && balance !== undefined && bridgeState
+      ? amountLamports + fees - balance
+      : null
+  const insufficient = shortfall !== null && shortfall > 0n
 
   return (
     <div className="space-y-4">
       <div className="space-y-2">
-        <label className="block text-sm text-neutral-400" htmlFor="sol-amount">
-          Amount
-        </label>
+        <div className="flex items-baseline justify-between">
+          <label className="block text-sm text-neutral-400" htmlFor="sol-amount">
+            Amount
+          </label>
+          {balance !== undefined && (
+            <span className="text-xs text-neutral-500">
+              Balance {formatSol(balance)} SOL
+              {maxLamports !== null && maxLamports > 0n && (
+                <button
+                  type="button"
+                  onClick={() => setAmount(formatSol(maxLamports))}
+                  className="ml-2 text-neutral-400 underline underline-offset-2 hover:text-neutral-200"
+                >
+                  Max
+                </button>
+              )}
+            </span>
+          )}
+        </div>
         <div className="flex gap-2">
           <input
             id="sol-amount"
@@ -64,6 +105,13 @@ export function SolanaBridgePanel() {
         </Row>
       </dl>
 
+      {insufficient && (
+        <p className="text-sm text-amber-400" role="alert">
+          Not enough SOL. You need {formatSol(shortfall!)} more to cover this transfer
+          plus fees.
+        </p>
+      )}
+
       {!solanaAccount || !evmAddress ? (
         <p className="rounded-xl border border-neutral-800 bg-neutral-950 px-3 py-3 text-sm text-neutral-400">
           Connect both wallets to bridge. The Solana one signs and pays; the Ethereum
@@ -72,7 +120,7 @@ export function SolanaBridgePanel() {
       ) : (
         <SolanaBridgeButton
           account={solanaAccount}
-          amountLamports={amountLamports}
+          amountLamports={insufficient ? null : amountLamports}
           recipient={evmAddress}
           bridgeState={bridgeState}
         />

@@ -52,3 +52,13 @@ export const RELAYER_SEEDS = {
 
 /** Teto de gas na Base pra execucao da mensagem. Mesmo valor dos scripts oficiais. */
 export const RELAY_GAS_LIMIT = 2_000_000n
+
+/**
+ * Folga deixada de lado ao usar "Max".
+ *
+ * Uma conta Solana precisa manter um minimo de lamports pra continuar isenta de
+ * aluguel; zerar o saldo fecha a conta. Este valor e conservador de proposito — o
+ * minimo real e menor, mas errar pra cima aqui custa centavos e errar pra baixo
+ * custa a conta do usuario.
+ */
+export const RENT_BUFFER_LAMPORTS = 1_000_000n
