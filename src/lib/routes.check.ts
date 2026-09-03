@@ -10,6 +10,7 @@ import assert from 'node:assert/strict'
 import {
   assetId,
   engineFor,
+  FALLBACK_ASSETS,
   isWrappedSolOnBase,
   NATIVE_EVM,
   NATIVE_SOL,
@@ -61,5 +62,11 @@ assert.deepEqual(engineFor(solNative, solOnBase, { ...opts, testnets: true }), {
 })
 assert.equal(engineFor(ethMainnet, ethBase, { ...opts, testnets: true }).available, false)
 assert.equal(engineFor(solNative, usdcBase, { ...opts, testnets: true }).available, false)
+
+// Todo ativo de fallback tem logo. Sem isso o card abre nas iniciais do simbolo,
+// que e o fallback pra token sem logo — nao pro ETH e pro SOL.
+for (const asset of FALLBACK_ASSETS) {
+  assert.ok(asset.logoURI, `fallback asset sem logoURI: ${asset.id}`)
+}
 
 console.log('routes: ok')

@@ -90,6 +90,19 @@ export function assetId(chain: ChainKey, address: string): string {
 }
 
 /**
+ * Logos dos ativos de fallback.
+ *
+ * Sao as mesmas URLs que o LI.FI devolve pra esses tokens. Ficam fixas aqui
+ * porque a lista de fallback existe justamente onde o catalogo nao chega: o
+ * primeiro render, antes de a resposta de 3,7 MB voltar, e o modo testnet, onde
+ * o LI.FI nem responde. Sem elas o card abria com as iniciais do simbolo — que e
+ * o fallback pra token da cauda longa sem logo, nao pro ETH e pro SOL.
+ */
+const ETH_LOGO =
+  'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/assets/0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2/logo.png'
+const SOL_LOGO = 'https://s2.coinmarketcap.com/static/img/coins/64x64/5426.png'
+
+/**
  * Lista de fallback. Serve pro par inicial da tela e pro modo testnet, onde o
  * LI.FI nao tem lista pra oferecer. Em mainnet o seletor mostra o catalogo do
  * LI.FI e esta lista nao aparece.
@@ -102,6 +115,7 @@ export const FALLBACK_ASSETS: Asset[] = [
     symbol: 'ETH',
     name: 'Ether',
     decimals: 18,
+    logoURI: ETH_LOGO,
   },
   {
     id: assetId('base', NATIVE_EVM),
@@ -110,6 +124,7 @@ export const FALLBACK_ASSETS: Asset[] = [
     symbol: 'ETH',
     name: 'Ether',
     decimals: 18,
+    logoURI: ETH_LOGO,
   },
   {
     id: assetId('solana', NATIVE_SOL),
@@ -118,6 +133,7 @@ export const FALLBACK_ASSETS: Asset[] = [
     symbol: 'SOL',
     name: 'Solana',
     decimals: 9,
+    logoURI: SOL_LOGO,
   },
   {
     // O endereco real entra em evmAddressOf, resolvido contra a rede ativa.
@@ -128,6 +144,7 @@ export const FALLBACK_ASSETS: Asset[] = [
     name: 'Solana',
     decimals: 9,
     fromNetwork: 'solErc20',
+    logoURI: SOL_LOGO,
   },
 ]
 

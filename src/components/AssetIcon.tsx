@@ -48,8 +48,14 @@ export function AssetIcon({ asset, size = 36 }: { asset: Asset; size?: number })
           {asset.symbol.slice(0, 2)}
         </span>
       )}
+      {/*
+       * O anel usa a cor de BORDA, e nao a de fundo. Estas linhas aparecem sobre
+       * quatro fundos diferentes — card, afundado, e o hover de cada um — entao
+       * um anel que imita o fundo esta errado em tres deles. A borda e neutra e
+       * ja tem um valor por tema.
+       */}
       <span
-        className="absolute -bottom-0.5 -right-0.5 rounded-full ring-2 ring-[color:var(--surface)]"
+        className="absolute -bottom-0.5 -right-0.5 flex rounded-full ring-2 ring-[color:var(--border)]"
         title={chain.name}
       >
         <ChainMark chain={asset.chain} size={badge} />
