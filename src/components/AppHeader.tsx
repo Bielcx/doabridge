@@ -22,7 +22,22 @@ export function AppHeader() {
          * numa linha so. Dimensoes em prop e em style: a classe do Tailwind
          * sozinha nao venceu os atributos que o next/image escreve no elemento.
          */}
+        {/*
+         * Duas versoes da mesma marca, trocadas pelo tema em `globals.css`. As
+         * duas levam `alt`: a escondida sai por `display: none`, entao o leitor
+         * de tela so enxerga uma.
+         */}
         <Image
+          className="mark-light"
+          src="/doabridgelogo-light.png"
+          alt="Do A Bridge"
+          width={72}
+          height={36}
+          priority
+          style={{ height: 36, width: 'auto' }}
+        />
+        <Image
+          className="mark-dark"
           src="/doabridgelogopng.png"
           alt="Do A Bridge"
           width={72}

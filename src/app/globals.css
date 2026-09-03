@@ -77,3 +77,21 @@ html {
 html.dark {
   color-scheme: dark;
 }
+
+/*
+ * A marca tem duas versoes porque as torres e os cabos dela sao brancos: no tema
+ * claro a ponte inteira sumia e sobrava so o tabuleiro colorido. A variante
+ * `-light` e a mesma imagem com o branco trocado por tinta.
+ *
+ * A troca e por CSS, e nao por estado do React, pra nao piscar a marca errada
+ * entre a primeira pintura e a hidratacao — o mesmo motivo do THEME_INIT_SCRIPT.
+ */
+.mark-dark {
+  display: none;
+}
+html.dark .mark-dark {
+  display: block;
+}
+html.dark .mark-light {
+  display: none;
+}
