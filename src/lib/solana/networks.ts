@@ -80,11 +80,18 @@ export const NETWORKS: Record<NetworkName, NetworkConfig> = {
  * Estado inicial do interruptor de testnets.
  *
  * A rede deixou de ser constante de build e virou preferencia do usuario — a
- * variavel de ambiente agora define so o PADRAO de quem abre o app pela primeira
- * vez. Continua caindo em testnet quando nao configurada, pela mesma razao de
- * antes: esquecer de configurar deve custar zero, nunca dinheiro real.
+ * variavel de ambiente define so o PADRAO de quem abre o app pela primeira vez.
+ *
+ * O padrao e MAINNET, e testnet e que e opt-in. O padrao anterior era o inverso,
+ * pra que esquecer de configurar nunca custasse dinheiro real. Mas quem esquece
+ * de configurar e o desenvolvedor, e o preco era todo visitante cair numa devnet
+ * onde nada do produto funciona: o LI.FI nao opera la, entao a lista de moedas
+ * fica na lista curta de fallback e quase todo par aparece como indisponivel.
+ * Proteger o dono do site as custas de todo mundo que chega e a troca errada — e
+ * a rede aparece etiquetada no cabecalho justamente pra ninguem transferir sem
+ * saber onde esta.
  */
-export const DEFAULT_TESTNETS = process.env.NEXT_PUBLIC_NETWORK !== 'mainnet'
+export const DEFAULT_TESTNETS = process.env.NEXT_PUBLIC_NETWORK === 'devnet'
 
 /**
  * RPC da Solana por rede. O publico tem rate limit agressivo; em producao use um
