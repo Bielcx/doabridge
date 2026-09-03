@@ -46,6 +46,27 @@ src/
     solana/lifi-adapter.ts  shim Wallet Standard → SignerWalletAdapter do LI.FI
 ```
 
+## Fundos
+
+O fundo animado é escolha do usuário, nas configurações: **Ribbons** (padrão),
+**Waves**, **Ether**, **Radar** e **None**. A escolha fica em `localStorage`.
+
+Os componentes vivem em `src/components/vendor/` e são código de terceiro
+(React Bits e Originkit) mantido como veio, com as alterações locais listadas no
+cabeçalho de cada arquivo. Não editar o corpo: para atualizar, recopiar da fonte e
+refazer as alterações do cabeçalho. O ESLint ignora essa pasta por isso.
+
+Duas alterações se repetem e valem a explicação:
+
+- **`pointerSource="window"`.** O fundo é uma camada com `pointer-events: none`, que
+  por definição não recebe evento nenhum. Componente que escuta o ponteiro no próprio
+  container fica inerte ali. Com `"window"` ele escuta na janela e converte a posição
+  para as coordenadas do container. O Liquid Ether já faz isso de origem.
+- **Glifos do Radar.** Os cinco traços vetoriais do original viraram `₿ Ξ ◎ $ ◆`.
+
+`three` (Ether) e `ogl` (Waves) entram por `next/dynamic` com `ssr: false`, então só
+baixa quem escolheu aquele fundo.
+
 ## Regra de isolamento da carteira
 
 Só três arquivos importam de `@rainbow-me/rainbowkit`: `lib/wagmi.ts`,

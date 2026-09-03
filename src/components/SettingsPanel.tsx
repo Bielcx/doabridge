@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useSettings } from '@/app/settings-provider'
+import { BACKGROUND_META, BACKGROUNDS } from '@/lib/background'
 import { THEMES, type Theme } from '@/lib/theme'
 
 const THEME_LABEL: Record<Theme, string> = {
@@ -12,7 +13,7 @@ const THEME_LABEL: Record<Theme, string> = {
 
 export function SettingsPanel() {
   const [open, setOpen] = useState(false)
-  const { theme, setTheme, testnets, setTestnets } = useSettings()
+  const { theme, setTheme, background, setBackground, testnets, setTestnets } = useSettings()
 
   return (
     <div className="relative">
@@ -57,6 +58,29 @@ export function SettingsPanel() {
                   </button>
                 ))}
               </div>
+            </div>
+
+            <div className="mb-4">
+              <p className="mb-2 text-xs text-muted">Background</p>
+              <div className="grid grid-cols-2 gap-1">
+                {BACKGROUNDS.map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => setBackground(option)}
+                    aria-pressed={background === option}
+                    title={BACKGROUND_META[option].hint}
+                    className={`rounded-lg border px-2 py-1.5 text-xs transition ${
+                      background === option
+                        ? 'border-accent bg-accent text-accent-ink'
+                        : 'border-line text-muted hover:text-ink'
+                    }`}
+                  >
+                    {BACKGROUND_META[option].label}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-1.5 text-xs text-faint">{BACKGROUND_META[background].hint}</p>
             </div>
 
             <div className="flex items-start justify-between gap-3">

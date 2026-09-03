@@ -1,27 +1,43 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import { useEffect, useState } from 'react'
 import { useSettings } from '@/app/settings-provider'
 import FlowRibbons from '@/components/vendor/flow-ribbons'
+import { BACKGROUND_META } from '@/lib/background'
 import { resolveTheme } from '@/lib/theme'
 
 /**
- * Fundo animado.
+ * Fundo animado, escolhido nas configuracoes.
  *
- * Monocromatico de proposito: o card e o conteudo carregam a cor, o fundo so
- * da textura. Fita colorida atras de um formulario de dinheiro disputa atencao
- * com os numeros, que e onde o olho precisa estar.
+ * Os tres fundos pesados entram por `dynamic` com `ssr: false`. Nao e cerimonia:
+ * o Liquid Ether puxa o three.js inteiro e o Gradient Waves puxa o ogl. Importar
+ * os dois de forma estatica colocaria as duas bibliotecas no primeiro carregamento
+ * de todo mundo, inclusive de quem nunca sai do fundo padrao. Assim so baixa quem
+ * escolheu. `ssr: false` porque os tres tocam WebGL/canvas direto, que nao existe
+ * no servidor.
  *
- * A cor inverte com o tema. Branco sobre o fundo claro seria invisivel, entao
- * o tema claro usa tinta escura — mesma ideia, contraste ao contrario.
+ * As fitas continuam estaticas: sao 400 linhas sem dependencia externa, e sao o
+ * padrao, entao adiar o carregamento delas so acrescentaria um piscar.
  *
- * Fica atras de tudo e nao captura clique. Como uma camada com
- * `pointer-events: none` nao recebe evento nenhum, o componente escuta o
- * ponteiro na janela (`pointerSource="window"`) em vez de no proprio container
- * — senao o efeito de seguir o cursor simplesmente nunca dispara.
+ * Todos ficam atras de tudo e nao capturam clique. Uma camada com
+ * `pointer-events: none` nao recebe evento nenhum, entao cada componente precisa
+ * escutar o ponteiro na JANELA, e nao no proprio container — senao a interacao com
+ * o mouse simplesmente nunca dispara. O Liquid Ether ja faz isso de origem; nos
+ * outros tres foi alteracao local, marcada no cabecalho de cada arquivo vendorizado.
  */
+
+const GradientWaves = dynamic(() => import('@/components/vendor/gradient-waves'), {
+  ssr: false,
+})
+const LiquidEther = dynamic(() => import('@/components/vendor/liquid-ether'), { ssr: false })
+const AsciiRadar = dynamic(() => import('@/components/vendor/ascii-radar'), { ssr: false })
+
+/** Azul e verde da marca — as duas pontas do gradiente do logo. */
+const BRAND = ['#3b5bff', '#1700ff', '#00e59a'] as const
+
 export function AppBackground() {
-  const { theme } = useSettings()
+  const { theme, background } = useSettings()
   const [animate, setAnimate] = useState(false)
   const [dark, setDark] = useState(true)
 
@@ -45,28 +61,68 @@ export function AppBackground() {
     return () => query.removeEventListener('change', apply)
   }, [theme])
 
-  if (!animate) return null
+  if (!animate || background === 'none') return null
 
   const ink = dark ? '#ffffff' : '#1c1917'
+  const opacity = BACKGROUND_META[background].opacity[dark ? 'dark' : 'light']
 
   return (
-    <div
-      aria-hidden="true"
-      className="pointer-events-none fixed inset-0 -z-10"
-      style={{ opacity: dark ? 0.22 : 0.12 }}
-    >
-      <FlowRibbons
-        colorA={ink}
-        colorB={ink}
-        count={18}
-        scale={14}
-        size={5}
-        trail={20}
-        speed={100}
-        strength={13}
-        followPointer
-        pointerSource="window"
-      />
+    <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10" style={{ opacity }}>
+      {background === 'ribbons' && (
+        // Monocromatico de proposito: o card e o conteudo carregam a cor, o fundo
+        // so da textura. A cor inverte com o tema — branco sobre fundo claro seria
+        // invisivel.
+        <FlowRibbons
+          colorA={ink}
+          colorB={ink}
+          count={18}
+          scale={14}
+          size={5}
+          trail={20}
+          speed={100}
+          strength={13}
+          followPointer
+          pointerSource="window"
+        />
+      )}
+
+      {background === 'waves' && (
+        <GradientWaves
+          horizonColor={dark ? '#0b1030' : '#e8ecff'}
+          waveColor={BRAND[1]}
+          crestColor={dark ? '#00e59a' : '#ffffff'}
+          amplitude={2.2}
+          speed={0.6}
+          mouseInteraction
+          pointerSource="window"
+        />
+      )}
+
+      {background === 'ether' && (
+        <LiquidEther
+          colors={[...BRAND]}
+          mouseForce={18}
+          cursorSize={110}
+          resolution={0.4}
+          autoDemo
+          autoSpeed={0.4}
+          lightMode={!dark}
+        />
+      )}
+
+      {background === 'radar' && (
+        // `background: transparent` no lugar do preto do preset: o preto do preset
+        // pintaria a pagina inteira e apagaria o tema claro.
+        <AsciiRadar
+          background="transparent"
+          glyphColor={dark ? '#00e59a' : '#0052ff'}
+          ringColor={dark ? '#3b5bff' : '#1700ff'}
+          glyphSize={70}
+          density={52}
+          trail
+          pointerSource="window"
+        />
+      )}
     </div>
   )
 }
