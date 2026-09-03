@@ -11,8 +11,8 @@
 //   2. Adicionada a prop `pointerSource`. O original escuta o ponteiro no proprio
 //      canvas, o que nao funciona quando o componente e um fundo com
 //      `pointer-events: none`. Mesma alteracao ja feita em flow-ribbons.
-//   3. Adicionada a prop `trail`: pings acompanhando o cursor, nao so no clique.
-//   4. Nada mais. Se atualizar, recopiar do Originkit e refazer estes quatro.
+//   3. Nada mais — em especial, o ping continua saindo SO no clique, como no
+//      original. Se atualizar, recopiar do Originkit e refazer estes tres.
 
 "use client";
 
@@ -108,8 +108,6 @@ interface AsciiRadarProps {
     density?: number;
     speed?: number;
     click?: boolean;
-    /** Alteracao local: pings seguindo o ponteiro, nao so no clique. */
-    trail?: boolean;
     /** Alteracao local: onde escutar o ponteiro. Ver o cabecalho. */
     pointerSource?: "element" | "window";
     ringSpeed?: number;
@@ -130,7 +128,6 @@ function __OriginkitBase_AsciiRadar({
     density = 60,
     speed = 50,
     click = true,
-    trail = true,
     pointerSource = "element",
     ringSpeed = 50,
     ringSize = 2,
@@ -150,7 +147,6 @@ function __OriginkitBase_AsciiRadar({
         clusterSize: Math.max(2, Math.round(columnsFromScale(scale) * CLUSTER_PER_COLUMN)),
         clusterSpeed: speed,
         clickOn: click,
-        trailOn: trail,
         pingSpeed: ringSpeed,
         ringWidth: ringSize,
     });
@@ -381,36 +377,14 @@ function __OriginkitBase_AsciiRadar({
             spawn(q.x, q.y);
         };
 
-        // ALTERACAO LOCAL: rastro do ponteiro. So o clique deixaria um fundo que
-        // parece morto — o radar acompanha o cursor, e o clique continua sendo o
-        // ping forte. Espacado no tempo E na distancia porque um ping por evento
-        // de pointermove enche a fila de dezesseis em meio segundo.
-        let lastTrail = 0;
-        let lastX = -1e9;
-        let lastY = -1e9;
-        const onMove = (e: PointerEvent) => {
-            if (!live.trailOn) return;
-            const q = cellAt(e);
-            if (!q) return;
-            const now = performance.now();
-            if (now - lastTrail < 320) return;
-            if (Math.hypot(q.x - lastX, q.y - lastY) < cols * 0.06) return;
-            lastTrail = now;
-            lastX = q.x;
-            lastY = q.y;
-            spawn(q.x, q.y);
-        };
-
         const pointerTarget: HTMLElement | Window =
             pointerSource === "window" ? window : canvas;
         pointerTarget.addEventListener("pointerdown", onDown as EventListener);
-        pointerTarget.addEventListener("pointermove", onMove as EventListener);
 
         raf = requestAnimationFrame(render);
         return () => {
             cancelAnimationFrame(raf);
             pointerTarget.removeEventListener("pointerdown", onDown as EventListener);
-            pointerTarget.removeEventListener("pointermove", onMove as EventListener);
         };
     }, []);
 

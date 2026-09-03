@@ -119,7 +119,6 @@ export function AppBackground() {
           ringColor={dark ? '#3b5bff' : '#1700ff'}
           glyphSize={70}
           density={52}
-          trail
           pointerSource="window"
         />
       )}

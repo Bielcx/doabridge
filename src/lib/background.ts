@@ -39,7 +39,7 @@ export const BACKGROUND_META: Record<
   },
   radar: {
     label: 'Radar',
-    hint: 'Crypto glyphs. Move or click to send a ping.',
+    hint: 'Crypto glyphs. Click to send a ping.',
     opacity: { dark: 0.55, light: 0.35 },
   },
   none: {

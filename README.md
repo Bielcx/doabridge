@@ -63,6 +63,7 @@ Duas alterações se repetem e valem a explicação:
   container fica inerte ali. Com `"window"` ele escuta na janela e converte a posição
   para as coordenadas do container. O Liquid Ether já faz isso de origem.
 - **Glifos do Radar.** Os cinco traços vetoriais do original viraram `₿ Ξ ◎ $ ◆`.
+  O ping continua saindo só no clique, como no original.
 
 `three` (Ether) e `ogl` (Waves) entram por `next/dynamic` com `ssr: false`, então só
 baixa quem escolheu aquele fundo.
