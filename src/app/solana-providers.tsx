@@ -3,6 +3,7 @@
 import { SelectedWalletAccountContextProvider } from '@solana/react'
 import { getWalletFeature, useWallets, type UiWallet } from '@wallet-standard/react'
 import { useCallback, useEffect, useRef, type ReactNode } from 'react'
+import { SolanaSignerSync } from '@/components/SolanaSignerSync'
 import { SELECTED_ACCOUNT_STORAGE_KEY } from '@/lib/solana/networks'
 import { useNetwork } from './settings-provider'
 
@@ -115,6 +116,7 @@ export function SolanaProviders({ children }: { children: ReactNode }) {
       stateSync={stateSync}
     >
       <SolanaAutoConnect />
+      <SolanaSignerSync />
       {children}
     </SelectedWalletAccountContextProvider>
   )

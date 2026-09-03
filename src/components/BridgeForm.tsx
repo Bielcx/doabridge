@@ -2,15 +2,16 @@
 
 import { useState } from 'react'
 import { useSettings } from '@/app/settings-provider'
+import { AggregatorPanel } from '@/components/AggregatorPanel'
 import { AssetIcon } from '@/components/AssetIcon'
 import { ChainTokenPicker } from '@/components/ChainTokenPicker'
-import { EvmBridgePanel } from '@/components/EvmBridgePanel'
 import { SolanaBridgePanel } from '@/components/SolanaBridgePanel'
 import {
-  assetById,
-  assetsOn,
   CHAINS,
-  requiredDestination,
+  DEFAULT_FROM,
+  DEFAULT_TO,
+  engineFor,
+  fallbackAssetsOn,
   routeSupport,
   type Asset,
   type ChainKey,
@@ -19,25 +20,19 @@ import {
 type Picking = 'from' | 'to' | null
 
 export function BridgeForm() {
-  const [from, setFrom] = useState<Asset>(() => assetById('ethereum:ETH'))
-  const [to, setTo] = useState<Asset>(() => assetById('base:ETH'))
+  const [from, setFrom] = useState<Asset>(DEFAULT_FROM)
+  const [to, setTo] = useState<Asset>(DEFAULT_TO)
   const [picking, setPicking] = useState<Picking>(null)
-  const { testnets } = useSettings()
+  const { testnets, network } = useSettings()
 
-  const options = { testnets }
-  const support = routeSupport(from.chain, to.chain, options)
+  const options = { testnets, solErc20: network.base.solErc20 }
+  const support = engineFor(from, to, options)
 
   /** Ao trocar um lado, conserta o outro se o par deixar de existir. */
   function pickFrom(asset: Asset) {
     setFrom(asset)
-
-    // Alguns motores nao deixam escolher o outro lado. O canonico so mina SOL
-    // embrulhado na Base, entao o destino e consequencia, nao opcao.
-    const forced = requiredDestination(asset)
-    if (forced) {
-      setTo(forced)
-    } else if (!routeSupport(asset.chain, to.chain, options).available) {
-      const fallback = firstReachableFrom(asset.chain, options)
+    if (!routeSupport(asset.chain, to.chain, { testnets }).available) {
+      const fallback = firstReachableFrom(asset.chain, testnets)
       if (fallback) setTo(fallback)
     }
     setPicking(null)
@@ -45,16 +40,20 @@ export function BridgeForm() {
 
   function pickTo(asset: Asset) {
     setTo(asset)
+    if (!routeSupport(from.chain, asset.chain, { testnets }).available) {
+      const fallback = firstReachableTo(asset.chain, testnets)
+      if (fallback) setFrom(fallback)
+    }
     setPicking(null)
   }
 
   function invert() {
-    if (!routeSupport(to.chain, from.chain, options).available) return
+    if (!canInvert) return
     setFrom(to)
     setTo(from)
   }
 
-  const canInvert = routeSupport(to.chain, from.chain, options).available
+  const canInvert = routeSupport(to.chain, from.chain, { testnets }).available
 
   return (
     <div className="w-full max-w-md rounded-2xl border border-line bg-surface p-5">
@@ -67,7 +66,6 @@ export function BridgeForm() {
               ? { chain: to.chain, side: 'destination' }
               : { chain: from.chain, side: 'origin' }
           }
-          originAsset={picking === 'to' ? from : undefined}
           testnets={testnets}
           onPick={picking === 'from' ? pickFrom : pickTo}
           onCancel={() => setPicking(null)}
@@ -95,7 +93,7 @@ export function BridgeForm() {
 
           {support.available ? (
             support.engine === 'lifi' ? (
-              <EvmBridgePanel from={from} to={to} />
+              <AggregatorPanel from={from} to={to} />
             ) : (
               <SolanaBridgePanel to={to} />
             )
@@ -137,16 +135,24 @@ function AssetRow({
   )
 }
 
-function firstReachableFrom(
-  chain: ChainKey,
-  options: { testnets?: boolean },
-): Asset | null {
-  for (const candidate of ['base', 'ethereum', 'solana'] as ChainKey[]) {
+const ORDER: ChainKey[] = ['base', 'ethereum', 'solana']
+
+function firstReachableFrom(chain: ChainKey, testnets: boolean): Asset | null {
+  for (const candidate of ORDER) {
     if (candidate === chain) continue
-    if (routeSupport(chain, candidate, options).available) {
-      const [asset] = assetsOn(candidate)
-      if (asset) return asset
-    }
+    if (!routeSupport(chain, candidate, { testnets }).available) continue
+    const [asset] = fallbackAssetsOn(candidate)
+    if (asset) return asset
+  }
+  return null
+}
+
+function firstReachableTo(chain: ChainKey, testnets: boolean): Asset | null {
+  for (const candidate of ORDER) {
+    if (candidate === chain) continue
+    if (!routeSupport(candidate, chain, { testnets }).available) continue
+    const [asset] = fallbackAssetsOn(candidate)
+    if (asset) return asset
   }
   return null
 }

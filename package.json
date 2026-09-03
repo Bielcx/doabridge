@@ -7,13 +7,16 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "check": "node --experimental-strip-types --no-warnings src/lib/routes.check.ts"
   },
   "dependencies": {
     "@lifi/sdk": "^3.16.3",
     "@rainbow-me/rainbowkit": "^2.2.11",
     "@solana/kit": "^8.2.0",
     "@solana/react": "^8.2.0",
+    "@solana/wallet-adapter-base": "^0.9.27",
+    "@solana/web3.js": "^1.98.4",
     "@tanstack/react-query": "^5.102.8",
     "@wallet-standard/react": "^1.0.3",
     "@x402/core": "^2.24.0",

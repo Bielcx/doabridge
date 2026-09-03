@@ -5,40 +5,62 @@ import { formatUnits } from 'viem'
 import { useAccount } from 'wagmi'
 import { useConnectModal } from '@rainbow-me/rainbowkit'
 import { EvmWalletSlot } from '@/components/EvmWalletSlot'
+import { SolanaWalletSlot } from '@/components/SolanaWalletSlot'
 import { useBridgeExecution } from '@/hooks/useBridgeExecution'
 import { useBridgeRoutes } from '@/hooks/useBridgeRoutes'
-import type { Asset } from '@/lib/routes'
+import { useSolanaAccount } from '@/hooks/useSolanaAccount'
+import { CHAINS, type Asset } from '@/lib/routes'
 
 /**
- * Ethereum <-> Base via LI.FI.
+ * Qualquer par de redes via LI.FI — inclusive Solana <-> Base, nas duas direcoes.
  *
  * Agregador em vez de chamada direta nos contratos do OP Stack: usuario final nao tem
  * como auditar um frontend desconhecido chamando L1StandardBridge na mao, e o LI.FI e
- * o mesmo motor que Brid.gg e Superbridge usam.
+ * o mesmo motor que o Brid.gg usa.
+ *
+ * Atravessar entre Solana e EVM precisa das DUAS carteiras: uma assina e paga, a
+ * outra define quem recebe. Sao dois enderecos em duas redes e nao da pra abstrair
+ * num botao so — esconder um deles seria esconder pra onde o dinheiro vai. Quando o
+ * par e EVM <-> EVM, o mesmo endereco atende os dois lados e so uma carteira aparece.
  */
-export function EvmBridgePanel({ from, to }: { from: Asset; to: Asset }) {
-  const { address, isConnected } = useAccount()
+export function AggregatorPanel({ from, to }: { from: Asset; to: Asset }) {
+  const { address: evmAddress, isConnected } = useAccount()
+  const solanaAccount = useSolanaAccount()
   const { openConnectModal } = useConnectModal()
   const [amount, setAmount] = useState('')
 
-  const routes = useBridgeRoutes({ from, to, amount, address })
+  const needsEvm = CHAINS[from.chain].family === 'evm' || CHAINS[to.chain].family === 'evm'
+  const needsSolana =
+    CHAINS[from.chain].family === 'solana' || CHAINS[to.chain].family === 'solana'
+
+  const missingEvm = needsEvm && !(isConnected && evmAddress)
+  const missingSolana = needsSolana && !solanaAccount
+
+  const routes = useBridgeRoutes({
+    from,
+    to,
+    amount,
+    evmAddress,
+    solanaAddress: solanaAccount?.address,
+  })
   const best = routes.data?.[0]
   const { state, execute } = useBridgeExecution()
   const running = state.status === 'running'
 
   return (
     <div className="space-y-4">
-      <div className="rounded-xl border border-line bg-sunken px-3 py-1">
-        <EvmWalletSlot label="Wallet" />
+      <div className="space-y-1 rounded-xl border border-line bg-sunken px-3 py-1">
+        {needsEvm && <EvmWalletSlot label={needsSolana ? 'EVM wallet' : 'Wallet'} />}
+        {needsSolana && <SolanaWalletSlot label="Solana wallet" />}
       </div>
 
       <div className="space-y-2">
-        <label className="block text-sm text-muted" htmlFor="evm-amount">
+        <label className="block text-sm text-muted" htmlFor="bridge-amount">
           Amount
         </label>
         <div className="flex gap-2">
           <input
-            id="evm-amount"
+            id="bridge-amount"
             inputMode="decimal"
             placeholder="0.0"
             value={amount}
@@ -54,18 +76,22 @@ export function EvmBridgePanel({ from, to }: { from: Asset; to: Asset }) {
       <QuoteLine
         loading={routes.isFetching}
         error={routes.error instanceof Error ? routes.error.message : null}
-        receive={
-          best ? `${formatUnits(BigInt(best.toAmount), to.decimals)} ${to.symbol}` : null
-        }
+        receive={best ? `${formatUnits(BigInt(best.toAmount), to.decimals)} ${to.symbol}` : null}
       />
 
       <button
         type="button"
-        disabled={isConnected && (!best || running)}
-        onClick={() => (isConnected ? best && execute(best) : openConnectModal?.())}
+        disabled={!missingEvm && (missingSolana || !best || running)}
+        onClick={() => (missingEvm ? openConnectModal?.() : best && execute(best))}
         className="w-full rounded-xl bg-accent px-4 py-3 font-medium transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-sunken disabled:text-faint"
       >
-        {!isConnected ? 'Connect wallet' : running ? 'Bridging...' : 'Do a bridge'}
+        {missingEvm
+          ? 'Connect wallet'
+          : missingSolana
+            ? 'Connect a Solana wallet'
+            : running
+              ? 'Bridging...'
+              : 'Do a bridge'}
       </button>
 
       {state.status === 'error' && (

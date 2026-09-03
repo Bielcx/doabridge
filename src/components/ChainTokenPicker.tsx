@@ -2,15 +2,8 @@
 
 import { useState } from 'react'
 import { AssetIcon } from '@/components/AssetIcon'
-import {
-  assetsOn,
-  CHAIN_LIST,
-  CHAINS,
-  destinationAssets,
-  routeSupport,
-  type Asset,
-  type ChainKey,
-} from '@/lib/routes'
+import { useAssetList } from '@/hooks/useTokens'
+import { CHAIN_LIST, CHAINS, routeSupport, type Asset, type ChainKey } from '@/lib/routes'
 
 /**
  * Painel de escolha de rede e ativo.
@@ -18,31 +11,34 @@ import {
  * Substitui o conteudo do card em vez de abrir modal — e o padrao dos dois
  * concorrentes, e mantem o tamanho da caixa estavel, sem escurecer a pagina.
  *
+ * A lista de ativos vem do catalogo do LI.FI, entao tem milhares de linhas por
+ * rede. Duas consequencias no desenho: existe campo de busca, e sem busca a lista
+ * sai cortada nos primeiros resultados. Cortar e honesto porque o contador diz o
+ * tamanho real — esconder o total daria a impressao de que o catalogo e curto.
+ *
  * Redes cujo par nao e suportado aparecem desabilitadas COM O MOTIVO. Esconder
  * daria a impressao de que a rede nao existe; mostrar sem explicar viraria clique
- * frustrado. Dizer "Base pra Solana precisa de uma etapa de prova, em breve"
- * comunica limite e ambicao ao mesmo tempo.
+ * frustrado.
  */
 export function ChainTokenPicker({
   title,
   selected,
   /** Quando presente, restringe as redes ao que se atravessa a partir desta. */
   pairedWith,
-  originAsset,
-  testnets,
+  testnets = false,
   onPick,
   onCancel,
 }: {
   title: string
   selected: Asset
   pairedWith?: { chain: ChainKey; side: 'origin' | 'destination' }
-  /** Origem escolhida, quando este painel esta escolhendo o destino. */
-  originAsset?: Asset
   testnets?: boolean
   onPick: (asset: Asset) => void
   onCancel: () => void
 }) {
   const [chain, setChain] = useState<ChainKey>(selected.chain)
+  const [query, setQuery] = useState('')
+  const { assets, loading, error, total } = useAssetList({ chain, query, testnets })
 
   const chainState = (candidate: ChainKey) => {
     if (!pairedWith) return { enabled: true, reason: '' }
@@ -69,7 +65,7 @@ export function ChainTokenPicker({
         <h2 className="text-base font-semibold">{title}</h2>
       </div>
 
-      <div className="mb-4 grid grid-cols-3 gap-2">
+      <div className="mb-3 grid grid-cols-3 gap-2">
         {CHAIN_LIST.map((info) => {
           const state = chainState(info.key)
           const active = info.key === chain
@@ -100,15 +96,20 @@ export function ChainTokenPicker({
         </p>
       )}
 
-      {originAsset && blocked.enabled && destinationAssets(originAsset, chain).length === 0 && (
-        <p className="mb-3 rounded-xl border border-line px-3 py-2 text-xs text-muted">
-          The canonical bridge only mints wrapped SOL on Base, so the asset on the
-          other side is fixed.
-        </p>
-      )}
+      <input
+        type="search"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Search name, symbol or paste an address"
+        aria-label="Search assets"
+        className="mb-3 w-full rounded-xl border border-line bg-sunken px-3 py-2 text-sm outline-none placeholder:text-faint focus:border-accent"
+      />
 
-      <ul className="space-y-1">
-        {(originAsset ? destinationAssets(originAsset, chain) : assetsOn(chain)).map((asset) => (
+      {loading && <p className="py-6 text-center text-sm text-muted">Loading assets...</p>}
+      {error && <p className="py-6 text-center text-sm text-danger">{error}</p>}
+
+      <ul className="max-h-72 space-y-1 overflow-y-auto">
+        {assets.map((asset) => (
           <li key={asset.id}>
             <button
               type="button"
@@ -117,19 +118,29 @@ export function ChainTokenPicker({
               className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition hover:bg-sunken disabled:cursor-not-allowed disabled:opacity-40"
             >
               <AssetIcon asset={asset} />
-              <span className="flex-1">
+              <span className="min-w-0 flex-1">
                 <span className="block text-sm font-medium">{asset.symbol}</span>
-                <span className="block text-xs text-muted">
+                <span className="block truncate text-xs text-muted">
                   {asset.name} on {CHAINS[asset.chain].name}
                 </span>
               </span>
-              {asset.id === selected.id && (
-                <span className="text-xs text-accent">selected</span>
-              )}
+              {asset.id === selected.id && <span className="text-xs text-accent">selected</span>}
             </button>
           </li>
         ))}
       </ul>
+
+      {!loading && !error && assets.length === 0 && (
+        <p className="py-6 text-center text-sm text-muted">
+          Nothing matches {query ? `"${query}"` : 'this network'}.
+        </p>
+      )}
+
+      {!loading && !query && total > assets.length && (
+        <p className="pt-2 text-center text-xs text-faint">
+          Showing {assets.length} of {total.toLocaleString()} assets. Search to find the rest.
+        </p>
+      )}
     </div>
   )
 }

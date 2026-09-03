@@ -1,7 +1,15 @@
 # Do A Bridge
 
-Bridge entre Ethereum mainnet e Base. O diferencial planejado — bridge nativo
-Base ↔ Solana — é a v2; ver `docs/base-solana-viabilidade.md`.
+Bridge entre Ethereum, Base e Solana, nas duas direções de cada par.
+
+O catálogo de ativos vem do LI.FI em tempo de execução: ~5.500 tokens na Ethereum,
+~1.000 na Base e ~4.400 na Solana. Não existe lista fixa de moedas no código.
+
+**O diferencial é Solana.** O Brid.gg hoje é um widget do LI.FI (`@lifi/widget`,
+`integrator: "bridgg"`) rodando com `chains: { types: { allow: ["EVM"] } }` — ou seja,
+mesmo motor que o nosso, mas configurado para não mostrar Solana. Nós mostramos, e
+para o par SOL nativo → SOL embrulhado na Base usamos o bridge canônico da Base em
+vez do agregador; ver `docs/base-solana-viabilidade.md`.
 
 ## Rodar
 
@@ -27,12 +35,15 @@ src/
     ConnectWallet.tsx ← fronteira de isolamento (botão de conectar)
     BridgeForm.tsx    tela principal, fala só com wagmi
   hooks/
+    useTokens.ts           catálogo de ativos do LI.FI + busca, cache de 1h
     useBridgeRoutes.ts     cotação via react-query, revalida a cada 20s
     useBridgeExecution.ts  executeRoute do LI.FI + estado renderizável
   lib/
     wagmi.ts          ← fronteira de isolamento (config das chains e conectores)
-    lifi.ts           configuração do LI.FI SDK e busca de rotas
-    tokens.ts         lista curta e explícita de tokens do MVP
+    lifi.ts           configuração do LI.FI SDK (EVM + Solana) e busca de rotas
+    routes.ts         redes, tipo Asset, e qual motor atravessa cada par
+    routes.check.ts   autoteste de engineFor — `npm run check`
+    solana/lifi-adapter.ts  shim Wallet Standard → SignerWalletAdapter do LI.FI
 ```
 
 ## Regra de isolamento da carteira
