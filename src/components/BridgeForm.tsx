@@ -79,15 +79,29 @@ export function BridgeForm() {
             <div className="mx-3 border-t border-line" />
             <AssetRow label="To" asset={to} onClick={() => setPicking('to')} />
 
+            {/*
+              * Centralizado na divisoria, e nao encostado na direita: e ali que a
+              * seta significa "troca estes dois". Encostado na borda ele disputava
+              * espaco com o simbolo do ativo, que precisava de uma margem a mao
+              * pra desviar.
+              */}
             <button
               type="button"
               onClick={invert}
               disabled={!canInvert}
               aria-label="Swap direction"
               title={canInvert ? 'Swap direction' : 'That direction is not supported yet'}
-              className="absolute right-4 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-line bg-surface text-muted transition hover:border-accent hover:text-ink disabled:cursor-not-allowed disabled:opacity-40"
+              className="absolute left-1/2 top-1/2 flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-line bg-surface text-muted shadow-sm transition hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-40"
             >
-              ↓
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true">
+                <path
+                  d="M7 4v14m0 0-3-3m3 3 3-3M17 20V6m0 0-3 3m3-3 3 3"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
             </button>
           </div>
 
@@ -124,13 +138,31 @@ function AssetRow({
       className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition hover:bg-surface"
     >
       <AssetIcon asset={asset} />
-      <span className="flex-1">
+      {/*
+       * O simbolo vem primeiro e a rede depois. Antes era o contrario, e as duas
+       * linhas do card abriam com "Ethereum" e "Base" enquanto o que muda de fato
+       * na transferencia — a moeda — ficava numa etiqueta pequena no canto.
+       */}
+      <span className="min-w-0 flex-1">
         <span className="block text-xs uppercase tracking-wide text-muted">{label}</span>
-        <span className="block text-base font-medium">{CHAINS[asset.chain].name}</span>
+        <span className="block truncate text-base font-medium">
+          {asset.symbol}
+          <span className="ml-1.5 text-sm font-normal text-muted">
+            on {CHAINS[asset.chain].name}
+          </span>
+        </span>
       </span>
-      <span className="mr-10 rounded-lg border border-line px-2 py-1 text-xs text-muted">
-        {asset.symbol}
-      </span>
+      {/* Seta de "abre uma lista": sem ela a linha nao parece clicavel. */}
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true">
+        <path
+          d="m9 6 6 6-6 6"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="text-faint"
+        />
+      </svg>
     </button>
   )
 }

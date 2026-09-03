@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AssetIcon } from '@/components/AssetIcon'
+import { ChainMark } from '@/components/ChainMark'
 import { useAssetList } from '@/hooks/useTokens'
 import { CHAIN_LIST, CHAINS, routeSupport, type Asset, type ChainKey } from '@/lib/routes'
 
@@ -51,6 +52,17 @@ export function ChainTokenPicker({
 
   const blocked = chainState(chain)
 
+  // Esc volta pro card. O painel toma a tela inteira do card e cobre o botao de
+  // bridge; sem uma saida pelo teclado, quem abriu sem querer fica preso ate
+  // achar a setinha.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onCancel()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onCancel])
+
   return (
     <div>
       <div className="mb-4 flex items-center gap-3">
@@ -79,11 +91,7 @@ export function ChainTokenPicker({
                 active ? 'border-accent bg-sunken' : 'border-line hover:border-accent'
               } ${state.enabled ? '' : 'opacity-40'}`}
             >
-              <span
-                className="h-5 w-5 rounded-full"
-                style={{ background: info.tint }}
-                aria-hidden="true"
-              />
+              <ChainMark chain={info.key} size={20} />
               {info.name}
             </button>
           )
@@ -96,8 +104,13 @@ export function ChainTokenPicker({
         </p>
       )}
 
+      {/*
+       * Foco automatico porque a lista tem milhares de linhas: quem abre isto ja
+       * sabe o que procura, e digitar direto poupa um clique em todo uso.
+       */}
       <input
         type="search"
+        autoFocus
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         placeholder="Search name, symbol or paste an address"

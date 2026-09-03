@@ -1,10 +1,11 @@
 'use client'
 
 import { useState } from 'react'
+import { ChainMark } from '@/components/ChainMark'
 import { CHAINS, type Asset } from '@/lib/routes'
 
 /**
- * Icone do ativo com o marcador da rede sobreposto.
+ * Icone do ativo com a marca da rede sobreposta.
  *
  * Brid.gg e Superbridge convergiram nesse padrao independentemente, o que sugere
  * convencao estabelecida: e o que permite "ETH na Base" e "ETH na Ethereum"
@@ -48,11 +49,11 @@ export function AssetIcon({ asset, size = 36 }: { asset: Asset; size?: number })
         </span>
       )}
       <span
-        className="absolute -bottom-0.5 -right-0.5 rounded-full ring-2 ring-[color:var(--surface-sunken)]"
-        style={{ width: badge, height: badge, background: chain.tint }}
+        className="absolute -bottom-0.5 -right-0.5 rounded-full ring-2 ring-[color:var(--surface)]"
         title={chain.name}
-        aria-hidden="true"
-      />
+      >
+        <ChainMark chain={asset.chain} size={badge} />
+      </span>
     </span>
   )
 }

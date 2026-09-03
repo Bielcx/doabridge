@@ -131,7 +131,8 @@ export function SolanaBridgePanel({ to }: { to: Asset }) {
 
       <p className="text-xs text-faint">
         Canonical bridge on {network.label}. Your SOL is locked in Base&apos;s own
-        vault and minted as an ERC-20 — no liquidity pool, no market maker spread.
+        vault and minted as {to.symbol} on Base — no liquidity pool, no market maker
+        spread.
       </p>
     </div>
   )
