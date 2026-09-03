@@ -30,7 +30,7 @@ export const BACKGROUND_META: Record<
   waves: {
     label: 'Waves',
     hint: 'A gradient sea that tilts toward the cursor.',
-    opacity: { dark: 0.5, light: 0.32 },
+    opacity: { dark: 0.8, light: 0.6 },
   },
   ether: {
     label: 'Ether',

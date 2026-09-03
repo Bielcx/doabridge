@@ -87,12 +87,19 @@ export function AppBackground() {
       )}
 
       {background === 'waves' && (
+        // As cores sao as mesmas nos dois temas, de proposito. O shader deixa o
+        // horizonte transparente (`alpha = t * uOpacity`, t cai com a distancia),
+        // entao quem pinta a tela e o par waveColor -> crestColor. Aproximar
+        // qualquer um dos dois do fundo da pagina — branco no tema claro, azul
+        // escuro no escuro — e exatamente o que fazia a onda sumir. Azul e verde
+        // da marca tem contraste contra os dois fundos.
         <GradientWaves
-          horizonColor={dark ? '#0b1030' : '#e8ecff'}
+          horizonColor={BRAND[1]}
           waveColor={BRAND[1]}
-          crestColor={dark ? '#00e59a' : '#ffffff'}
+          crestColor={BRAND[2]}
           amplitude={2.2}
           speed={0.6}
+          brightness={dark ? 1.15 : 1}
           mouseInteraction
           pointerSource="window"
         />
