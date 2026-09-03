@@ -9,6 +9,14 @@ import './globals.css'
 export const metadata: Metadata = {
   title: 'Do A Bridge',
   description: 'Bridge assets between Ethereum and Base.',
+  // Favicon com fundo transparente, nas duas versoes da marca — a mesma troca do
+  // header, aqui pelo `media`, que e o unico jeito de o icone acompanhar o tema.
+  // Por isso os icones sao declarados aqui em vez de pelo arquivo `app/icon.png`:
+  // a convencao de arquivo entrega um icone so, sem media query.
+  icons: [
+    { url: '/favicon-light.png', media: '(prefers-color-scheme: light)' },
+    { url: '/favicon.png', media: '(prefers-color-scheme: dark)' },
+  ],
 }
 
 export default async function RootLayout({
